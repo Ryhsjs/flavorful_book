@@ -1,23 +1,16 @@
 package ru.itis.flavorful_book.repository;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import ru.itis.flavorful_book.entity.Category;
 
 import java.util.List;
 
-public interface CategoryRepository {
-    boolean save(Long recipeId, Long categoryId);
-
-    boolean delete(Long recipeId, Long categoryId);
-
-    Category findById(Long categoryId);
-
-    List<Category> findAll();
+public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     List<Category> findAllByParentId(Long parentId);
 
-    List<Category> findAllByRecipeId(Long recipeId);
-
-    boolean exists(Long categoryId);
-
-    boolean exists(Long recipeId, Long categoryId);
+    @Query("SELECT c FROM Recipe r JOIN r.categories c WHERE r.id = :recipeId")
+    List<Category> findAllByRecipeId(@Param("recipeId") Long recipeId);
 }

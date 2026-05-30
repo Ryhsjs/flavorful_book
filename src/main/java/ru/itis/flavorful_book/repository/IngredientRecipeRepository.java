@@ -1,18 +1,29 @@
 package ru.itis.flavorful_book.repository;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 import ru.itis.flavorful_book.entity.IngredientRecipe;
-import ru.itis.flavorful_book.entity.enums.Unit;
 
 import java.util.List;
+import java.util.Optional;
 
-public interface IngredientRecipeRepository {
-    boolean save(Long recipeId, Long ingredientId, Integer quantity, Unit unit, String notes);
+public interface IngredientRecipeRepository extends JpaRepository<IngredientRecipe, Long> {
 
-    boolean update(Long recipeId, Long ingredientId, Integer quantity, Unit unit, String notes);
+    List<IngredientRecipe> findAllByRecipe_Id(Long recipeId);
 
-    boolean delete(Long recipeId, Long ingredientId);
+    Optional<IngredientRecipe> findByRecipe_IdAndIngredient_Id(Long recipeId, Long ingredientId);
 
-    boolean exists(Long recipeId, Long ingredientId);
+    boolean existsByRecipe_IdAndIngredient_Id(Long recipeId, Long ingredientId);
 
-    List<IngredientRecipe> findAll(Long recipeId);
+    @Transactional
+    @Modifying
+    void deleteByRecipe_IdAndIngredient_Id(Long recipeId, Long ingredientId);
+
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM IngredientRecipe ir WHERE ir.recipe.id = :recipeId")
+    void deleteAllByRecipeId(@Param("recipeId") Long recipeId);
 }

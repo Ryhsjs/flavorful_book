@@ -1,23 +1,22 @@
 package ru.itis.flavorful_book.repository;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import ru.itis.flavorful_book.entity.User;
 
-public interface UserRepository {
-    User save(User user);
+import java.util.Optional;
 
-    boolean update(User user);
+public interface UserRepository extends JpaRepository<User, Long> {
 
-    User findById(Long id);
+    Optional<User> findByEmail(String email);
 
-    User findByEmail(String email);
-
-    User findByUsername(String username);
-
-    boolean existsById(Long id);
+    Optional<User> findByUsername(String username);
 
     boolean existsByEmail(String email);
 
     boolean existsByUsername(String username);
 
-    int countByFavorites(Long recipeId);
+    @Query(value = "SELECT COUNT(*) FROM favorites WHERE recipe_id = :recipeId", nativeQuery = true)
+    long countFavoritesByRecipeId(@Param("recipeId") Long recipeId);
 }

@@ -1,25 +1,18 @@
 package ru.itis.flavorful_book.repository;
 
+import org.springframework.data.jpa.repository.JpaRepository;
 import ru.itis.flavorful_book.entity.Review;
 
 import java.util.List;
+import java.util.Optional;
 
-public interface ReviewRepository {
-    Review save(Review review);
+public interface ReviewRepository extends JpaRepository<Review, Long> {
 
-    boolean update(Review review);
+    Optional<Review> findByUser_IdAndRecipe_Id(Long userId, Long recipeId);
 
-    boolean deleteById(Long id);
+    List<Review> findAllByRecipe_Id(Long recipeId);
 
-    Review findById(Long id);
+    boolean existsByUser_IdAndRecipe_Id(Long userId, Long recipeId);
 
-    Review findByUserIdRecipeId(Long userId, Long recipeId);
-
-    List<Review> findAllByRecipeId(Long recipeId);
-
-    boolean existsById(Long id);
-
-    boolean existsByUserIdRecipeId(Long userId, Long recipeId);
-
-    int countByRecipeId(Long recipeId);
+    long countByRecipe_Id(Long recipeId);
 }
