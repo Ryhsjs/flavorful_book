@@ -7,7 +7,7 @@
 <jsp:useBean id="reviews" scope="request" type="java.util.List"/>
 <jsp:useBean id="isFavorite" scope="request" type="java.lang.Boolean"/>
 <%--@elvariable id="userReview" type="ru.itis.flavorful_book.DTO.ReviewDTO"--%>
-<%--@elvariable id="user" type="ru.itis.flavorful_book.models.User"--%>
+<%--@elvariable id="user" type="ru.itis.flavorful_book.entity.User"--%>
 <t:main title="${recipe.title()}">
     <div class="fc recipe-info mb">
         <header>

@@ -8,9 +8,9 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import ru.itis.flavorful_book.exceptions.AuthenticationException;
-import ru.itis.flavorful_book.models.User;
-import ru.itis.flavorful_book.services.SecurityService;
+import ru.itis.flavorful_book.exception.AuthenticationException;
+import ru.itis.flavorful_book.entity.User;
+import ru.itis.flavorful_book.service.SecurityService;
 
 import java.io.IOException;
 import java.util.List;

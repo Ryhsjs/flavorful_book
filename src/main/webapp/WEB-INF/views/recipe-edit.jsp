@@ -2,8 +2,8 @@
 <%@taglib prefix="t" tagdir="/WEB-INF/tags" %>
 <%@taglib uri="jakarta.tags.core" prefix="c" %>
 <%--@elvariable id="recipe" type="ru.itis.flavorful_book.DTO.RecipeSaveDTO"--%>
-<%--@elvariable id="error" type="ru.itis.flavorful_book.exceptions.IllegalRecipeArgumentException"--%>
-<%--@elvariable id="user" type="ru.itis.flavorful_book.models.User"--%>
+<%--@elvariable id="error" type="ru.itis.flavorful_book.exception.IllegalRecipeArgumentException"--%>
+<%--@elvariable id="user" type="ru.itis.flavorful_book.entity.User"--%>
 <%--@elvariable id="errorImage" type="java.lang.IllegalArgumentException"--%>
 <jsp:useBean id="categories" scope="request" type="java.util.List"/>
 <jsp:useBean id="ingredients" scope="request" type="java.util.List"/>
@@ -156,7 +156,7 @@
 
                 <select name="ingredientUnit" id="ingredientUnit">
                     <c:forEach items="${units}" var="unit">
-                        <%--@elvariable id="unit" type="ru.itis.flavorful_book.models.enums.Unit"--%>
+                        <%--@elvariable id="unit" type="ru.itis.flavorful_book.entity.enums.Unit"--%>
                         <option value="${unit.toString()}"><c:out value="${unit.unit}"/></option>
                     </c:forEach>
                 </select>

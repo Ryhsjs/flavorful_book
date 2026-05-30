@@ -7,10 +7,10 @@ import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import ru.itis.flavorful_book.models.Category;
-import ru.itis.flavorful_book.models.Ingredient;
-import ru.itis.flavorful_book.services.CategoryService;
-import ru.itis.flavorful_book.services.IngredientService;
+import ru.itis.flavorful_book.entity.Category;
+import ru.itis.flavorful_book.entity.Ingredient;
+import ru.itis.flavorful_book.service.CategoryService;
+import ru.itis.flavorful_book.service.IngredientService;
 
 import java.io.IOException;
 import java.util.List;

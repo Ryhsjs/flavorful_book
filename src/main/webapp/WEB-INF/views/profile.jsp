@@ -3,7 +3,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <jsp:useBean id="section" scope="request" type="java.lang.String"/>
 <jsp:useBean id="recipes" scope="request" type="java.util.List"/>
-<jsp:useBean id="user" scope="request" type="ru.itis.flavorful_book.models.User"/>
+<jsp:useBean id="user" scope="request" type="ru.itis.flavorful_book.entity.User"/>
 <t:main title="Профиль">
     <header class="fr header-container">
         <section class="fr user">

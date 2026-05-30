@@ -3,8 +3,8 @@ package ru.itis.flavorful_book.listeners;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
-import ru.itis.flavorful_book.repositories.*;
-import ru.itis.flavorful_book.services.*;
+import ru.itis.flavorful_book.repository.*;
+import ru.itis.flavorful_book.service.*;
 import ru.itis.flavorful_book.util.jdbc.SimpleDataSource;
 import ru.itis.flavorful_book.util.validation.Validator;
 

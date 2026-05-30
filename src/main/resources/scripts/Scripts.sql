@@ -1,31 +1,23 @@
 CREATE TABLE IF NOT EXISTS users
 (
-    user_id       BIGSERIAL PRIMARY KEY,
-    username      VARCHAR(100) NOT NULL UNIQUE,
-    email         VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(512) NOT NULL,
-    salt          VARCHAR(255) NOT NULL,
-    avatar_url    VARCHAR(500),
-    created_at    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS sessions
-(
-    session_id VARCHAR(128) PRIMARY KEY,
-    user_id    BIGINT    NOT NULL,
-    expire_at  TIMESTAMP NOT NULL
+    id         BIGSERIAL PRIMARY KEY,
+    username   VARCHAR(40) NOT NULL UNIQUE,
+    email      VARCHAR(255) NOT NULL UNIQUE,
+    password   VARCHAR(512) NOT NULL,
+    avatar_url VARCHAR(512),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS recipes
 (
-    recipe_id           BIGSERIAL PRIMARY KEY,
+    id                  BIGSERIAL PRIMARY KEY,
     title               VARCHAR(255) NOT NULL,
-    description         TEXT,
+    description         VARCHAR(255),
     instructions        TEXT         NOT NULL,
     active_cooking_time INT          NOT NULL,
     total_cooking_time  INT          NOT NULL,
     servings            INT          NOT NULL,
-    image_url           VARCHAR(500),
+    image_url           VARCHAR(512),
     created_at          TIMESTAMPTZ   DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMPTZ   DEFAULT NULL,
     user_id             BIGINT       NOT NULL,
@@ -35,7 +27,7 @@ CREATE TABLE IF NOT EXISTS recipes
 
 CREATE TABLE IF NOT EXISTS reviews
 (
-    review_id  BIGSERIAL PRIMARY KEY,
+    id         BIGSERIAL PRIMARY KEY,
     user_id    BIGINT   NOT NULL,
     recipe_id  BIGINT   NOT NULL,
     rating     SMALLINT NOT NULL CHECK (rating >= 1 AND rating <= 5),
@@ -57,27 +49,28 @@ CREATE TABLE IF NOT EXISTS favorites
 
 CREATE TABLE IF NOT EXISTS ingredients
 (
-    ingredient_id BIGSERIAL PRIMARY KEY,
-    name          VARCHAR(255) UNIQUE NOT NULL
+    id   BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS categories
 (
-    category_id        BIGSERIAL PRIMARY KEY,
+    id                 BIGSERIAL PRIMARY KEY,
     name               VARCHAR(255) UNIQUE NOT NULL,
-    description        TEXT,
+    description        VARCHAR(255),
     parent_category_id BIGINT
 );
 
 CREATE TABLE IF NOT EXISTS recipe_ingredients
 (
-    recipe_id     BIGINT         NOT NULL,
-    ingredient_id BIGINT         NOT NULL,
-    quantity      DECIMAL(10, 2) NOT NULL,
-    unit          VARCHAR(50)    NOT NULL,
+    id            BIGSERIAL PRIMARY KEY,
+    recipe_id     BIGINT        NOT NULL,
+    ingredient_id BIGINT        NOT NULL,
+    quantity      DECIMAL(5, 2) NOT NULL,
+    unit          VARCHAR(50)   NOT NULL,
     notes         VARCHAR(255),
 
-    PRIMARY KEY (recipe_id, ingredient_id)
+    UNIQUE (recipe_id, ingredient_id)
 );
 
 CREATE TABLE IF NOT EXISTS recipe_categories
@@ -89,72 +82,59 @@ CREATE TABLE IF NOT EXISTS recipe_categories
 );
 
 
-ALTER TABLE sessions
-    ADD CONSTRAINT fk_sessions_user_id
-        FOREIGN KEY (user_id)
-            REFERENCES users (user_id)
-            ON DELETE CASCADE;
-
 ALTER TABLE recipes
     ADD CONSTRAINT fk_recipes_user_id
         FOREIGN KEY (user_id)
-            REFERENCES users (user_id)
+            REFERENCES users (id)
             ON DELETE CASCADE;
 
 ALTER TABLE reviews
     ADD CONSTRAINT fk_reviews_user_id
         FOREIGN KEY (user_id)
-            REFERENCES users (user_id)
+            REFERENCES users (id)
             ON DELETE CASCADE,
 
     ADD CONSTRAINT fk_reviews_recipe_id
         FOREIGN KEY (recipe_id)
-            REFERENCES recipes (recipe_id)
+            REFERENCES recipes (id)
             ON DELETE CASCADE;
 
 ALTER TABLE favorites
     ADD CONSTRAINT fk_favorites_user_id
         FOREIGN KEY (user_id)
-            REFERENCES users (user_id)
+            REFERENCES users (id)
             ON DELETE CASCADE,
 
     ADD CONSTRAINT fk_favorites_recipe_id
         FOREIGN KEY (recipe_id)
-            REFERENCES recipes (recipe_id)
+            REFERENCES recipes (id)
             ON DELETE CASCADE;
 
 ALTER TABLE categories
     ADD CONSTRAINT fk_categories_parent_category_id
         FOREIGN KEY (parent_category_id)
-            REFERENCES categories (category_id)
+            REFERENCES categories (id)
             ON DELETE SET NULL;
 
 ALTER TABLE recipe_ingredients
     ADD CONSTRAINT fk_recipe_ingredients_recipe_id
         FOREIGN KEY (recipe_id)
-            REFERENCES recipes (recipe_id)
+            REFERENCES recipes (id)
             ON DELETE CASCADE,
 
     ADD CONSTRAINT fk_recipe_ingredients_ingredient_id
         FOREIGN KEY (ingredient_id)
-            REFERENCES ingredients (ingredient_id);
+            REFERENCES ingredients (id);
 
 ALTER TABLE recipe_categories
     ADD CONSTRAINT fk_recipe_categories_recipe_id
         FOREIGN KEY (recipe_id)
-            REFERENCES recipes (recipe_id)
+            REFERENCES recipes (id)
             ON DELETE CASCADE,
 
     ADD CONSTRAINT fk_recipe_categories_category_id
         FOREIGN KEY (category_id)
-            REFERENCES categories (category_id);
-
-ALTER TABLE recipe_views
-    ADD CONSTRAINT fk_recipe_views_recipe_id
-        FOREIGN KEY (recipe_id)
-            REFERENCES recipes (recipe_id)
-            ON DELETE CASCADE;
-
+            REFERENCES categories (id);
 
 CREATE FUNCTION update_recipe_rating() RETURNS TRIGGER
     LANGUAGE plpgsql
@@ -166,7 +146,7 @@ BEGIN
         SET rating = (SELECT ROUND(AVG(rating)::NUMERIC, 2)
                       FROM reviews
                       WHERE recipe_id = COALESCE(new.recipe_id, old.recipe_id))
-        WHERE recipe_id = COALESCE(new.recipe_id, old.recipe_id);
+        WHERE id = COALESCE(new.recipe_id, old.recipe_id);
     END IF;
     RETURN COALESCE(new, old);
 END;

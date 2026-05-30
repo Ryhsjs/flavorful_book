@@ -1,7 +1,7 @@
 package ru.itis.flavorful_book.util.validation;
 
-import ru.itis.flavorful_book.repositories.RecipeRepository;
-import ru.itis.flavorful_book.repositories.UserRepository;
+import ru.itis.flavorful_book.repository.RecipeRepository;
+import ru.itis.flavorful_book.repository.UserRepository;
 
 public class Validator {
     private final UserRepository userRepository;
