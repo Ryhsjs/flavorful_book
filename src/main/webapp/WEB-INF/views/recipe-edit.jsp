@@ -1,44 +1,27 @@
 <%@page contentType="text/html;charset=UTF-8" language="java" %>
 <%@taglib prefix="t" tagdir="/WEB-INF/tags" %>
 <%@taglib uri="jakarta.tags.core" prefix="c" %>
-<%--@elvariable id="recipe" type="ru.itis.flavorful_book.DTO.RecipeSaveDTO"--%>
-<%--@elvariable id="error" type="ru.itis.flavorful_book.exception.IllegalRecipeArgumentException"--%>
-<%--@elvariable id="user" type="ru.itis.flavorful_book.entity.User"--%>
-<%--@elvariable id="errorImage" type="java.lang.IllegalArgumentException"--%>
-<jsp:useBean id="categories" scope="request" type="java.util.List"/>
-<jsp:useBean id="ingredients" scope="request" type="java.util.List"/>
-<jsp:useBean id="units" scope="request" type="java.util.List"/>
-<t:main title="${not empty recipe.id() ? recipe.title().concat(' (Изменение)') : 'Написание рецепта'}">
+<%--@elvariable id="recipe" type="ru.itis.flavorful_book.dto.RecipeDTO"--%>
+<t:main title="${not empty recipe ? recipe.title().concat(' (Изменение)') : 'Написание рецепта'}">
 
     <input type="hidden" id="recipeId" value="${recipe.id()}">
-
-    <input type="hidden" id="userId" value="${user.id}">
-
     <input type="hidden" id="imageUrl" value="${recipe.imageUrl()}">
-
     <input type="hidden" id="type" value="recipe">
 
     <header>
         <div class="fr header-container mb">
             <button class="plain-button" onclick="cancel()">Назад</button>
             <c:choose>
-                <c:when test="${not empty recipe and recipe.id() != null}">
+                <c:when test="${not empty recipe}">
                     <button class="del-button" onclick="deleteRecipe(${recipe.id()})">Удалить</button>
                 </c:when>
                 <c:otherwise>
                     <div></div>
                 </c:otherwise>
             </c:choose>
-
         </div>
         <section class="fr recipe-start">
             <div class="fc icon-text-container">
-                <c:if test="${not empty errorImage}">
-                    <div class="error-message">
-                        <i class="fa-solid fa-circle-info error-icon"></i>
-                        <p><c:out value="${errorImage}"/></p>
-                    </div>
-                </c:if>
                 <figure class="recipe-info-figure">
                     <t:img-recipe url="${not empty recipe ? recipe.imageUrl() : null}"/>
                 </figure>
@@ -49,57 +32,27 @@
 
             <div>
                 <label for="title">
-                    <c:if test="${not empty error and not empty error.titleState}">
-                        <p class="text-error"><c:out value="${error.titleState}"/></p>
-                    </c:if>
-
                     <input class="title-input" name="title" id="title" type="text" required
                            placeholder="Введите название"
-                           value="${not empty recipe ? recipe.title(): ''}">
+                           value="${not empty recipe ? recipe.title() : ''}">
                 </label>
 
-                <c:if test="${not empty error.cookingTimeState}">
-                    <p class="text-error">
-                        <c:out value="${error.cookingTimeState}"/>
-                    </p>
-                </c:if>
                 <div class="stats-grid">
-                    <p>Общее время готовки (мин):
-                        <c:if test="${not empty error.totalCookingTimeState}">
-                            <br>
-                            <span class="text-error">
-                                <c:out value="${error.totalCookingTimeState}"/>
-                            </span>
-                        </c:if>
-                    </p>
+                    <p>Общее время готовки (мин):</p>
                     <label for="totalCookingTime">
                         <input class="full-width" type="number" name="totalCookingTime"
                                id="totalCookingTime" min="0" max="1440" required
                                value="${not empty recipe ? recipe.totalCookingTime() : ''}">
                     </label>
 
-                    <p>Активное время готовки (мин):
-                        <c:if test="${not empty error.activeCookingTimeState}">
-                            <br>
-                            <span class="text-error">
-                                <c:out value="${error.activeCookingTimeState}"/>
-                            </span>
-                        </c:if>
-                    </p>
+                    <p>Активное время готовки (мин):</p>
                     <label for="activeCookingTime">
                         <input class="full-width" type="number" name="activeCookingTime"
                                id="activeCookingTime" min="0" max="1440" required
-                               value="${not empty recipe ? recipe.activeCookingTime(): ''}">
+                               value="${not empty recipe ? recipe.activeCookingTime() : ''}">
                     </label>
 
-                    <p>Количество порций:
-                        <c:if test="${not empty error.servingsState}">
-                            <br>
-                            <span class="text-error">
-                                <c:out value="${error.servingsState}"/>
-                            </span>
-                        </c:if>
-                    </p>
+                    <p>Количество порций:</p>
                     <label for="servings">
                         <input class="full-width" type="number" name="servings"
                                id="servings" min="0" max="100" required
@@ -123,8 +76,10 @@
                 </select>
             </label>
             <script>
-                const existingCategories =
-                ${not empty recipe.categories() ? recipe.categories() : []}
+                const existingCategories = <c:choose>
+                    <c:when test="${not empty recipe}">${recipe.categories()}</c:when>
+                    <c:otherwise>[]</c:otherwise>
+                </c:choose>
             </script>
         </div>
     </section>
@@ -132,8 +87,8 @@
     <section>
         <h2>Описание</h2>
         <label for="description">
-                <textarea rows="5" name="description" id="description"><c:out
-                        value="${recipe.description()}"/></textarea>
+            <textarea rows="5" name="description" id="description"><c:if
+                    test="${not empty recipe}"><c:out value="${recipe.description()}"/></c:if></textarea>
         </label>
     </section>
 
@@ -153,10 +108,8 @@
                 </label>
                 <p>—</p>
                 <input name="ingredientQuantity" id="ingredientQuantity" min="0" type="number">
-
                 <select name="ingredientUnit" id="ingredientUnit">
                     <c:forEach items="${units}" var="unit">
-                        <%--@elvariable id="unit" type="ru.itis.flavorful_book.entity.enums.Unit"--%>
                         <option value="${unit.toString()}"><c:out value="${unit.unit}"/></option>
                     </c:forEach>
                 </select>
@@ -167,6 +120,7 @@
 
         <script>
             const existingIngredients = [
+                <c:if test="${not empty recipe}">
                 <c:forEach var="ingredient" items="${recipe.ingredients()}">
                 {
                     "id": ${ingredient.id()},
@@ -175,21 +129,16 @@
                     "notes": "${ingredient.notes()}"
                 },
                 </c:forEach>
+                </c:if>
             ]
         </script>
     </section>
 
     <section>
         <h2>Рецепт</h2>
-        <c:if test="${not empty error and not empty error.instructionsState}">
-            <div class="error-message">
-                <i class="fa-solid fa-circle-info error-icon"></i>
-                <p><c:out value="${error.instructionsState}"/></p>
-            </div>
-        </c:if>
         <label for="instructions">
-                <textarea rows="15" name="instructions" id="instructions" required><c:out
-                        value="${recipe.instructions()}"/></textarea>
+            <textarea rows="15" name="instructions" id="instructions" required><c:if
+                    test="${not empty recipe}"><c:out value="${recipe.instructions()}"/></c:if></textarea>
         </label>
     </section>
 

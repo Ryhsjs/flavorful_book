@@ -22,16 +22,15 @@
     </header>
 
     <nav class="fr pages-nav">
-        <a class="page-link ${section.equals('my-recipes') ? 'active' : ''}"
-           onclick="goTo('/profile', {'section': 'my-recipes'})">Мои рецепты</a>
+        <a class="page-link ${section.equals('my') ? 'active' : ''}"
+           onclick="goTo('/profile', {'section': 'my'})">Мои рецепты</a>
         <a class="page-link ${section.equals('favorites') ? 'active' : ''}"
            onclick="goTo('/profile', {'section': 'favorites'})">Избранное</a>
     </nav>
 
-
     <nav class="fr nav-container">
-        <c:if test="${pageContext.request.getAttribute('section') == 'my-recipes'}">
-            <button class="plain-button" onclick="goTo('/recipe/edit')">Создать</button>
+        <c:if test="${section == 'my'}">
+            <button class="plain-button" onclick="goTo('/recipes/new')">Создать</button>
         </c:if>
         <p>Рецептов: ${recipes.size()}</p>
     </nav>
@@ -41,5 +40,5 @@
         <h2 class="text-subtle">Здесь пока ничего нет</h2>
     </c:if>
 
-    <t:profile-edit avatarUrl="${user.avatarUrl}" username="${user.username}"/>
+    <t:profile-edit avatarUrl="${user.avatarUrl}"/>
 </t:main>

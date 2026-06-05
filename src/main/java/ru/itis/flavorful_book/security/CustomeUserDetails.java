@@ -51,4 +51,8 @@ public class CustomeUserDetails implements UserDetails {
     public Long getId() {
         return user.getId();
     }
+
+    public String getAvatarUrl() {
+        return user.getAvatarUrl();
+    }
 }

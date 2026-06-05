@@ -1,22 +1,21 @@
 <%@page contentType="text/html;charset=UTF-8" language="java" %>
 <%@taglib prefix="t" tagdir="/WEB-INF/tags" %>
 <%@taglib uri="jakarta.tags.core" prefix="c" %>
-<jsp:useBean id="recipe" scope="request" type="ru.itis.flavorful_book.DTO.RecipeInfoDTO"/>
-<jsp:useBean id="categories" scope="request" type="java.util.List"/>
-<jsp:useBean id="ingredients" scope="request" type="java.util.List"/>
+<jsp:useBean id="recipe" scope="request" type="ru.itis.flavorful_book.dto.RecipeInfoDTO"/>
 <jsp:useBean id="reviews" scope="request" type="java.util.List"/>
-<jsp:useBean id="isFavorite" scope="request" type="java.lang.Boolean"/>
-<%--@elvariable id="userReview" type="ru.itis.flavorful_book.DTO.ReviewDTO"--%>
-<%--@elvariable id="user" type="ru.itis.flavorful_book.entity.User"--%>
+<%--@elvariable id="recipeCategories" type="java.util.List"--%>
+<%--@elvariable id="recipeIngredients" type="java.util.List"--%>
+<%--@elvariable id="userReview" type="ru.itis.flavorful_book.dto.ReviewDTO"--%>
 <t:main title="${recipe.title()}">
     <div class="fc recipe-info mb">
         <header>
             <div class="fr header-container mb">
                 <button class="plain-button" onclick="cancel()">Назад</button>
-                <c:if test="${not empty user}">
+                <c:if test="${not empty currentUser}">
                     <c:choose>
-                        <c:when test="${user.id == recipe.userId()}">
-                            <button class="filled-button" onclick="goTo('/recipe/edit/' + ${recipe.id()})">Изменить
+                        <c:when test="${currentUser.id == recipe.userId()}">
+                            <button class="filled-button"
+                                    onclick="goTo('/recipes/' + ${recipe.id()} + '/edit')">Изменить
                             </button>
                         </c:when>
                         <c:otherwise>
@@ -37,11 +36,8 @@
                         <b>${recipe.rating()}</b>
                     </h2>
                 </c:if>
-
                 <c:if test="${recipe.rating() == 0.0}">
-                    <p class="text-subtle">
-                        <b>(Пока нет оценки)</b>
-                    </p>
+                    <p class="text-subtle"><b>(Пока нет оценки)</b></p>
                 </c:if>
             </div>
 
@@ -53,9 +49,9 @@
             </div>
 
             <p class="text-subtle">
-                    ${recipe.createdAt().toLocalDate()}
-                <c:if test="${not empty recipe.updateAt()}">
-                    (Изменено ${recipe.updateAt().toLocalDate()})
+                ${recipe.createdAt().toLocalDate()}
+                <c:if test="${not empty recipe.updatedAt()}">
+                    (Изменено ${recipe.updatedAt().toLocalDate()})
                 </c:if>
             </p>
 
@@ -69,7 +65,7 @@
             </p>
             <h2>Категории</h2>
             <div class="fr categories">
-                <c:forEach var="category" items="${categories}">
+                <c:forEach var="category" items="${recipeCategories}">
                     <div class="category"><c:out value="${category.name}"/></div>
                 </c:forEach>
             </div>
@@ -78,10 +74,13 @@
         <section class="ingredients">
             <h2>Ингредиенты</h2>
             <ul class="ingredients-list">
-                <c:forEach var="ingredient" items="${ingredients}">
-                    <li><c:out value="${ingredient.name}"/>
-                        <c:if test="${not empty ingredient.notes}"><c:out value="(${ingredient.notes})"/></c:if>
-                        — ${ingredient.quantity} ${ingredient.unit.getUnit()}
+                <c:forEach var="ingredient" items="${recipeIngredients}">
+                    <li>
+                        <c:out value="${ingredient.name}"/>
+                        <c:if test="${not empty ingredient.notes}">
+                            (<c:out value="${ingredient.notes}"/>)
+                        </c:if>
+                        — ${ingredient.quantity} ${ingredient.unit.unit}
                     </li>
                 </c:forEach>
             </ul>

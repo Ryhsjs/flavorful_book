@@ -13,7 +13,6 @@ import ru.itis.flavorful_book.entity.enums.Unit;
 import ru.itis.flavorful_book.security.CustomeUserDetails;
 import ru.itis.flavorful_book.service.CategoryService;
 import ru.itis.flavorful_book.service.IngredientRecipeService;
-import ru.itis.flavorful_book.service.IngredientService;
 import ru.itis.flavorful_book.service.RecipeService;
 import ru.itis.flavorful_book.service.ReviewService;
 
@@ -25,18 +24,15 @@ public class RecipeController {
 
     private final RecipeService recipeService;
     private final CategoryService categoryService;
-    private final IngredientService ingredientService;
     private final IngredientRecipeService ingredientRecipeService;
     private final ReviewService reviewService;
 
     public RecipeController(RecipeService recipeService,
                             CategoryService categoryService,
-                            IngredientService ingredientService,
                             IngredientRecipeService ingredientRecipeService,
                             ReviewService reviewService) {
         this.recipeService = recipeService;
         this.categoryService = categoryService;
-        this.ingredientService = ingredientService;
         this.ingredientRecipeService = ingredientRecipeService;
         this.reviewService = reviewService;
     }
@@ -70,15 +66,11 @@ public class RecipeController {
         }
 
         model.addAttribute("recipes", recipes);
-        model.addAttribute("ingredients", ingredientService.findAll());
-        model.addAttribute("categories", categoryService.findAll());
         return "recipes";
     }
 
     @GetMapping("/new")
     public String createPage(Model model) {
-        model.addAttribute("categories", categoryService.findAll());
-        model.addAttribute("ingredients", ingredientService.findAll());
         model.addAttribute("units", Unit.values());
         return "recipe-edit";
     }
@@ -90,8 +82,8 @@ public class RecipeController {
         recipeService.updateViews(id);
         model.addAttribute("recipe", recipeService.findByIdInfoDTO(id));
         model.addAttribute("reviews", reviewService.findAllByRecipeId(id));
-        model.addAttribute("categories", categoryService.findAllByRecipeId(id));
-        model.addAttribute("ingredients", ingredientRecipeService.findAllDTOByRecipeId(id));
+        model.addAttribute("recipeCategories", categoryService.findAllByRecipeId(id));
+        model.addAttribute("recipeIngredients", ingredientRecipeService.findAllDTOByRecipeId(id));
 
         if (currentUser != null) {
             model.addAttribute("isFavorite", recipeService.isInFavorites(currentUser.getId(), id));
@@ -109,8 +101,6 @@ public class RecipeController {
             return "redirect:/recipes/" + id;
         }
         model.addAttribute("recipe", recipe);
-        model.addAttribute("categories", categoryService.findAll());
-        model.addAttribute("ingredients", ingredientService.findAll());
         model.addAttribute("units", Unit.values());
         return "recipe-edit";
     }

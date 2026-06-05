@@ -33,7 +33,10 @@ public class ProfileController {
                               @AuthenticationPrincipal CustomeUserDetails currentUser,
                               Model model) {
         populateModel(model, currentUser.getId(), section);
-        model.addAttribute("form", new ProfileEditForm());
+        ProfileEditForm form = new ProfileEditForm();
+        form.setUsername(currentUser.getUsername());
+        form.setAvatarUrl(currentUser.getAvatarUrl());
+        model.addAttribute("form", form);
         return "profile";
     }
 

@@ -35,7 +35,7 @@ public class IngredientRecipeServiceImpl implements IngredientRecipeService {
     @Override
     @Transactional
     public void save(Long recipeId, IngredientDTO ingredient) {
-        Unit unit = Unit.valueOf(ingredient.unit());
+        Unit unit = ingredient.unit();
         ingredientRecipeRepository.findByRecipe_IdAndIngredient_Id(recipeId, ingredient.id())
                 .ifPresentOrElse(
                         ir -> {
@@ -68,7 +68,7 @@ public class IngredientRecipeServiceImpl implements IngredientRecipeService {
 
         for (IngredientDTO dto : ingredients) {
             incomingIds.add(dto.id());
-            Unit unit = Unit.valueOf(dto.unit());
+            Unit unit = dto.unit();
             IngredientRecipe ir = existing.get(dto.id());
             if (ir == null) {
                 ir = new IngredientRecipe();

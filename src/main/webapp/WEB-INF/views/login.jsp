@@ -1,20 +1,18 @@
 <%@page contentType="text/html;charset=UTF-8" language="java" %>
 <%@taglib prefix="t" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%--@elvariable id="error" type="java.lang.String"--%>
-<%--@elvariable id="email" type="java.lang.String"--%>
 <t:layout title="Вход">
     <t:auth action="/login">
-        <c:if test="${not empty error}">
+        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
+        <c:if test="${param.error != null}">
             <div class="error-message">
                 <i class="fa-solid fa-circle-info error-icon"></i>
-                <p><c:out value="${error}"/></p>
+                <p>Неверное имя пользователя или пароль</p>
             </div>
         </c:if>
-        <label for="email">
+        <label for="username">
             Email:
-            <input class="full-width" type="email" id="email" name="email" placeholder="Введите"
-                   value="${not empty email ? email : ''}">
+            <input class="full-width" type="email" id="username" name="username" placeholder="Введите">
         </label>
         <label for="password">
             Пароль:

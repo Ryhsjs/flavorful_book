@@ -23,7 +23,7 @@ public interface IngredientRecipeRepository extends JpaRepository<IngredientReci
 
     Optional<IngredientRecipe> findByRecipe_IdAndIngredient_Id(Long recipeId, Long ingredientId);
 
-    boolean existsByRecipe_IdAndIngredient_Id(Long recipeId, Long ingredientId);
+    boolean existsByRecipe_Id(Long recipeId);
 
     @Transactional
     @Modifying
