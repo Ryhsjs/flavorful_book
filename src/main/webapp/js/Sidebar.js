@@ -135,7 +135,7 @@ class Sidebar {
             params.append('totalCookingTimeEnd', this.totalTimeEnd.value);
         }
 
-        window.location.href = (BASE_URL + `/?${params.toString()}`);
+        window.location.href = (BASE_URL + `/recipes?${params.toString()}`);
     }
 }
 

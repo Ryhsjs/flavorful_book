@@ -12,14 +12,13 @@ class RecipeEdit {
         this.ingredientUnit = document.getElementById("ingredientUnit");
 
         this.recipeId = document.getElementById("recipeId");
-        this.userId = document.getElementById("userId");
         this.title = document.getElementById("title");
         this.description = document.getElementById("description");
         this.instructions = document.getElementById("instructions");
         this.activeCookingTime = document.getElementById("activeCookingTime");
         this.totalCookingTime = document.getElementById("totalCookingTime");
         this.servings = document.getElementById("servings");
-        this.imgaeUrl = document.getElementById("imageUrl");
+        this.imageUrl = document.getElementById("imageUrl");
 
         this.selectedIngredients = new Map();
         this.selectedCategories = new Set();
@@ -136,19 +135,18 @@ class RecipeEdit {
     }
 
     post() {
+        const isNew = !(this.recipeId && this.recipeId.value);
+        const recipeId = isNew ? null : parseInt(this.recipeId.value);
+
         const recipeData = {
-            id: this.recipeId && this.recipeId.value ? parseInt(this.recipeId.value) : null,
             title: this.title.value,
             description: this.description.value,
             instructions: this.instructions.value,
             activeCookingTime: parseInt(this.activeCookingTime.value),
             totalCookingTime: parseInt(this.totalCookingTime.value),
             servings: parseInt(this.servings.value),
-            imageUrl: this.imgaeUrl.value,
-            userId: this.userId.value,
-
-            categories: Array.from(this.selectedCategories).map(id => parseInt(id)),
-
+            imageUrl: this.imageUrl.value,
+            categories: Array.from(this.selectedCategories).map(catId => parseInt(catId)),
             ingredients: Array.from(this.selectedIngredients.values()).map(ingredient => ({
                 id: parseInt(ingredient.id),
                 quantity: parseFloat(ingredient.quantity),
@@ -157,19 +155,23 @@ class RecipeEdit {
             }))
         };
 
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = CONTEXT_PATH + '/recipe/edit';
+        const url = isNew
+            ? CONTEXT_PATH + '/recipes'
+            : CONTEXT_PATH + '/recipes/' + recipeId;
 
-        const dataInput = document.createElement('input');
-        dataInput.type = 'hidden';
-        dataInput.name = 'recipeJson';
-        dataInput.value = JSON.stringify(recipeData);
-
-        form.appendChild(dataInput);
-
-        document.body.appendChild(form);
-        form.submit();
+        fetch(url, {
+            method: isNew ? 'POST' : 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken()
+            },
+            body: JSON.stringify(recipeData)
+        }).then(async response => {
+            if (response.ok) {
+                const savedId = isNew ? (await response.json()).id : recipeId;
+                window.location.href = BASE_URL + '/recipes/' + savedId;
+            }
+        });
     }
 }
 

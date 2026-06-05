@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import ru.itis.flavorful_book.entity.User;
 import ru.itis.flavorful_book.exception.IllegalUserArgumentException;
 import ru.itis.flavorful_book.form.ProfileEditForm;
 import ru.itis.flavorful_book.security.CustomeUserDetails;
@@ -32,10 +33,10 @@ public class ProfileController {
     public String profilePage(@RequestParam(required = false, defaultValue = "my") String section,
                               @AuthenticationPrincipal CustomeUserDetails currentUser,
                               Model model) {
-        populateModel(model, currentUser.getId(), section);
+        User user = populateModel(model, currentUser.getId(), section);
         ProfileEditForm form = new ProfileEditForm();
-        form.setUsername(currentUser.getUsername());
-        form.setAvatarUrl(currentUser.getAvatarUrl());
+        form.setUsername(user.getUsername());
+        form.setAvatarUrl(user.getAvatarUrl());
         model.addAttribute("form", form);
         return "profile";
     }
@@ -59,11 +60,13 @@ public class ProfileController {
         return "redirect:/profile";
     }
 
-    private void populateModel(Model model, Long userId, String section) {
-        model.addAttribute("user", userService.findById(userId));
+    private User populateModel(Model model, Long userId, String section) {
+        User user = userService.findById(userId);
+        model.addAttribute("user", user);
         model.addAttribute("recipes", "favorites".equals(section)
                 ? recipeService.findManyByUserFavorites(userId)
                 : recipeService.findManyByUserId(userId));
         model.addAttribute("section", section);
+        return user;
     }
 }

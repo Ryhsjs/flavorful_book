@@ -1,14 +1,26 @@
+function getCsrfToken() {
+    const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
+function getRecipeIdFromPath() {
+    const segments = location.pathname.split('/');
+    const idx = segments.indexOf('recipes');
+    return segments[idx + 1];
+}
+
 async function deleteRecipe(id) {
     const result = confirm("Вы уверены, что хотите удалить этот рецепт?");
 
     if (result) {
-        let requestParams = {
-            method: 'DELETE'
+        const response = await fetch(CONTEXT_PATH + '/recipes/' + id, {
+            method: 'DELETE',
+            headers: { 'X-XSRF-TOKEN': getCsrfToken() }
+        });
+
+        if (response.ok) {
+            window.location.href = (new URL(BASE_URL + "/profile")).toString();
         }
-
-        await fetch(CONTEXT_PATH + '/recipe/edit/' + id, requestParams);
-
-        window.location.href = (new URL(BASE_URL + "/profile")).toString();
     }
 }
 
@@ -16,13 +28,15 @@ async function deleteReview(id) {
     const result = confirm("Вы уверены, что хотите удалить отзыв?");
 
     if (result) {
-        let requestParams = {
-            method: 'DELETE'
+        const recipeId = getRecipeIdFromPath();
+        const response = await fetch(CONTEXT_PATH + '/recipes/' + recipeId + '/reviews/' + id, {
+            method: 'DELETE',
+            headers: { 'X-XSRF-TOKEN': getCsrfToken() }
+        });
+
+        if (response.ok) {
+            location.reload();
         }
-
-        await fetch(CONTEXT_PATH + '/recipe/review?id=' + id, requestParams);
-
-        location.reload();
     }
 }
 
@@ -48,24 +62,24 @@ function goTo(path, params = {}) {
 }
 
 async function addToFavorites() {
-    let requestParams = {
-        method: 'POST'
-    }
-
-    await fetch(location.href, requestParams);
+    const recipeId = getRecipeIdFromPath();
+    await fetch(CONTEXT_PATH + '/recipes/' + recipeId + '/favorites', {
+        method: 'POST',
+        headers: { 'X-XSRF-TOKEN': getCsrfToken() }
+    });
     location.reload();
-
 }
 
 async function removeFromFavorites() {
-    let requestParams = {
-        method: 'DELETE'
-    }
-
-    await fetch(location.href, requestParams);
+    const recipeId = getRecipeIdFromPath();
+    await fetch(CONTEXT_PATH + '/recipes/' + recipeId + '/favorites', {
+        method: 'DELETE',
+        headers: { 'X-XSRF-TOKEN': getCsrfToken() }
+    });
     location.reload();
-
 }
+
+let escapeHandler = null;
 
 function showPopup() {
     const blockout = document.getElementById("blockout");
@@ -74,11 +88,10 @@ function showPopup() {
     body.classList.add("no-scroll");
     blockout.classList.remove("none");
 
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-            closePopup();
-        }
-    });
+    escapeHandler = (e) => {
+        if (e.key === 'Escape') closePopup();
+    };
+    document.addEventListener('keydown', escapeHandler);
 }
 
 function closePopup() {
@@ -87,6 +100,11 @@ function closePopup() {
 
     body.classList.remove("no-scroll");
     blockout.classList.add("none");
+
+    if (escapeHandler) {
+        document.removeEventListener('keydown', escapeHandler);
+        escapeHandler = null;
+    }
 }
 
 function editReview() {
@@ -129,19 +147,18 @@ async function uploadImage() {
     const formData = new FormData();
     formData.append('image', file);
 
-
     const response = await fetch(CONTEXT_PATH + '/image/' + type, {
         method: 'POST',
+        headers: { 'X-XSRF-TOKEN': getCsrfToken() },
         body: formData
     });
 
-    const result = await response.text();
+    const result = await response.json();
 
-    if (result) {
+    if (result && result.url) {
         const imageUrl = document.getElementById("imageUrl");
-        imageUrl.value = result;
+        imageUrl.value = result.url;
     }
-
 }
 
 function changeReview() {
