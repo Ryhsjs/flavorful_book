@@ -1,9 +1,9 @@
 package ru.itis.flavorful_book.service;
 
-import jakarta.servlet.http.Part;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface ImageService {
-    String saveRecipeImage(Part imagePart);
+    String saveRecipeImage(MultipartFile file);
 
-    String saveUserAvatar(Part imagePart);
+    String saveUserAvatar(MultipartFile file);
 }

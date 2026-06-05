@@ -1,20 +1,23 @@
 package ru.itis.flavorful_book.service;
 
-import ru.itis.flavorful_book.DTO.RecipeInfoDTO;
-import ru.itis.flavorful_book.DTO.RecipePreviewDTO;
-import ru.itis.flavorful_book.DTO.RecipeSaveDTO;
+import ru.itis.flavorful_book.dto.RecipeDTO;
+import ru.itis.flavorful_book.dto.RecipeInfoDTO;
+import ru.itis.flavorful_book.dto.RecipePreviewDTO;
 import ru.itis.flavorful_book.entity.Recipe;
+import ru.itis.flavorful_book.form.RecipeForm;
 
 import java.util.List;
 
 public interface RecipeService {
-    Recipe save(RecipeSaveDTO recipeSaveDTO);
+    Long create(RecipeForm form, Long userId);
+
+    void update(Long id, RecipeForm form, Long userId);
 
     void updateViews(Long id);
 
     boolean deleteById(Long id);
 
-    RecipeSaveDTO findByIdSaveDTO(Long id);
+    RecipeDTO findByIdDTO(Long id);
 
     RecipeInfoDTO findByIdInfoDTO(Long id);
 

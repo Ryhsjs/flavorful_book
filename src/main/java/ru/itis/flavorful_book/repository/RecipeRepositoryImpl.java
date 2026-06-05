@@ -28,6 +28,8 @@ public class RecipeRepositoryImpl implements RecipeRepositoryCustom {
         CriteriaQuery<Recipe> cq = cb.createQuery(Recipe.class);
         Root<Recipe> root = cq.from(Recipe.class);
 
+        root.fetch("author", JoinType.LEFT);
+
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.between(root.get("activeCookingTime"), activeStart, activeEnd));
         predicates.add(cb.between(root.get("totalCookingTime"), totalStart, totalEnd));

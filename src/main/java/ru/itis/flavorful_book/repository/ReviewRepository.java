@@ -1,5 +1,6 @@
 package ru.itis.flavorful_book.repository;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import ru.itis.flavorful_book.entity.Review;
 
@@ -8,8 +9,13 @@ import java.util.Optional;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
+    @EntityGraph(attributePaths = {"user", "recipe"})
+    Optional<Review> findById(Long id);
+
+    @EntityGraph(attributePaths = "user")
     Optional<Review> findByUser_IdAndRecipe_Id(Long userId, Long recipeId);
 
+    @EntityGraph(attributePaths = "user")
     List<Review> findAllByRecipe_Id(Long recipeId);
 
     boolean existsByUser_IdAndRecipe_Id(Long userId, Long recipeId);

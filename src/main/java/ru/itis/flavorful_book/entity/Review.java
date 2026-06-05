@@ -1,7 +1,6 @@
 package ru.itis.flavorful_book.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -28,7 +27,6 @@ public class Review {
     @JoinColumn(name = "recipe_id", nullable = false)
     private Recipe recipe;
 
-    @Setter(AccessLevel.NONE)
     private Integer rating;
 
     @Column(nullable = false, columnDefinition = "TEXT")
@@ -39,10 +37,6 @@ public class Review {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    public void setRating(Integer rating) {
-        this.rating = (rating == null || rating < 1 || rating > 5) ? 5 : rating;
-    }
 
     @Override
     public boolean equals(Object o) {

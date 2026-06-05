@@ -1,51 +1,86 @@
 package ru.itis.flavorful_book.service;
 
-import ru.itis.flavorful_book.exception.IllegalUserArgumentException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.itis.flavorful_book.entity.User;
+import ru.itis.flavorful_book.exception.EntityNotFoundException;
+import ru.itis.flavorful_book.exception.IllegalUserArgumentException;
+import ru.itis.flavorful_book.form.SignupForm;
 import ru.itis.flavorful_book.repository.UserRepository;
-import ru.itis.flavorful_book.util.validation.Validator;
+import ru.itis.flavorful_book.security.CustomeUserDetails;
 
+import java.time.LocalDateTime;
+
+@Service
 public class UserServiceImpl implements UserService {
+
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    private final Validator validator;
-
-    public UserServiceImpl(UserRepository userRepository, Validator validator) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.validator = validator;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
-    public boolean update(Long id, String username, String avatarUrl) {
-        validator.validateUserExistence(id);
-        User oldUser = findById(id);
+    @Transactional
+    public void register(SignupForm form) {
+        IllegalUserArgumentException ex = new IllegalUserArgumentException("Ошибка при регистрации");
 
-        validateUserData(username, oldUser.getUsername());
-
-        oldUser.setUsername(username);
-        oldUser.setAvatarUrl(avatarUrl);
-
-        return userRepository.update(oldUser);
-    }
-
-    @Override
-    public User findById(Long id) {
-        validator.validateUserExistence(id);
-        return userRepository.findById(id);
-    }
-
-    private void validateUserData(String newUsername, String oldUsername) {
-        IllegalUserArgumentException exception = new IllegalUserArgumentException("Ошибка в имени пользователя");
-        exception.setUsernameState(validator.checkString(newUsername));
-        if (exception.getUsernameState() == null && !newUsername.equals(oldUsername)) {
-            if (userRepository.existsByUsername(newUsername))
-                exception.setUsernameState("Это имя пользователя уже используется");
-            else
-                exception.setUsernameState(validator.checkString(newUsername, 100));
+        if (userRepository.existsByUsername(form.getUsername())) {
+            ex.setUsernameState("Это имя пользователя уже используется");
+        }
+        if (userRepository.existsByEmail(form.getEmail())) {
+            ex.setEmailState("Этот email уже используется");
+        }
+        if (ex.isShouldThrow()) {
+            throw ex;
         }
 
+        User user = new User();
+        user.setUsername(form.getUsername());
+        user.setEmail(form.getEmail());
+        user.setPassword(passwordEncoder.encode(form.getPassword()));
+        user.setCreatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
 
-        if (exception.isShouldThrow())
-            throw exception;
+    @Override
+    @Transactional
+    public boolean update(Long id, String username, String avatarUrl) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь с id=" + id + " не найден"));
+
+        validateUsername(username, user.getUsername());
+
+        user.setUsername(username);
+        user.setAvatarUrl(avatarUrl);
+        userRepository.save(user);
+        return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public User findById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь с id=" + id + " не найден"));
+    }
+
+    private void validateUsername(String newUsername, String currentUsername) {
+        if (!newUsername.equals(currentUsername) && userRepository.existsByUsername(newUsername)) {
+            IllegalUserArgumentException ex = new IllegalUserArgumentException("Ошибка в имени пользователя");
+            ex.setUsernameState("Это имя пользователя уже используется");
+            throw ex;
+        }
+    }
+
+    @Override
+    public CustomeUserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
+
+        return new CustomeUserDetails(user);
     }
 }

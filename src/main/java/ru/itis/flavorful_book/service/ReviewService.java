@@ -1,12 +1,11 @@
 package ru.itis.flavorful_book.service;
 
-import ru.itis.flavorful_book.DTO.ReviewDTO;
-import ru.itis.flavorful_book.entity.Review;
+import ru.itis.flavorful_book.dto.ReviewDTO;
 
 import java.util.List;
 
 public interface ReviewService {
-    Review save(Long userId, Long recipeId, Integer rating, String comment);
+    void save(Long userId, Long recipeId, Integer rating, String comment);
 
     boolean update(Long id, Integer rating, String comment);
 

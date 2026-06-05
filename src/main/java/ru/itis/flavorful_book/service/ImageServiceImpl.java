@@ -1,114 +1,68 @@
 package ru.itis.flavorful_book.service;
 
-import jakarta.servlet.http.Part;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import ru.itis.flavorful_book.exception.ImageSaveException;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
+@Service
 public class ImageServiceImpl implements ImageService {
-    private final String uploadBasePath;
 
-    private final String absolutePath;
+    private static final String RECIPE_DIR = "recipe";
+    private static final String AVATAR_DIR = "avatar";
 
-    private final String UPLOADS_DIR = "uploads";
+    private final String uploadDir;
 
-    private final String RECIPE_IMAGE_DIR = "recipe";
-
-    private final String AVATAR_IMAGE_DIR = "avatar";
-
-    public ImageServiceImpl(String uploadBasePath, String absolutePath) {
-        this.uploadBasePath = uploadBasePath;
-        this.absolutePath = absolutePath;
-        createUploadDirectories();
+    public ImageServiceImpl(@Value("${app.upload.dir}") String uploadDir) {
+        this.uploadDir = uploadDir;
+        createDirectories();
     }
 
-    private void createUploadDirectories() {
-        String[] directories = {RECIPE_IMAGE_DIR, AVATAR_IMAGE_DIR};
-        for (String dir : directories) {
-            File directory = new File(uploadBasePath + File.separator + UPLOADS_DIR + File.separator + dir);
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
-        }
-
-        for (String dir : directories) {
-            File directory = new File(absolutePath + File.separator + UPLOADS_DIR + File.separator + dir);
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
-        }
+    private void createDirectories() {
+        new File(uploadDir + File.separator + RECIPE_DIR).mkdirs();
+        new File(uploadDir + File.separator + AVATAR_DIR).mkdirs();
     }
 
     @Override
-    public String saveRecipeImage(Part imagePart) {
+    public String saveRecipeImage(MultipartFile file) {
+        return save(file, RECIPE_DIR);
+    }
 
+    @Override
+    public String saveUserAvatar(MultipartFile file) {
+        return save(file, AVATAR_DIR);
+    }
+
+    private String save(MultipartFile file, String subDir) {
+        validateFile(file);
+        String fileName = UUID.randomUUID().toString().substring(0, 8) + getExtension(file);
+        String relativePath = File.separator + subDir + File.separator + fileName;
         try {
-            validateImageFile(imagePart);
-
-            String fileName = generateFileName(imagePart);
-
-            String fileUrl = generateUrl(RECIPE_IMAGE_DIR, fileName);
-
-            saveFile(imagePart, fileUrl);
-
-            return fileUrl;
+            file.transferTo(new File(uploadDir + relativePath));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ImageSaveException("Не удалось сохранить файл", e);
         }
+        return relativePath;
     }
 
-    @Override
-    public String saveUserAvatar(Part imagePart) {
-        try {
-            validateImageFile(imagePart);
-
-            String fileName = generateFileName(imagePart);
-
-            String fileUrl = generateUrl(AVATAR_IMAGE_DIR, fileName);
-
-            saveFile(imagePart, fileUrl);
-
-            return fileUrl;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void validateImageFile(Part imagePart) {
-        if (imagePart.getSize() > 5 * 1024 * 1024) {
+    private void validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty())
+            throw new IllegalArgumentException("Файл не выбран");
+        if (file.getSize() > 5 * 1024 * 1024)
             throw new IllegalArgumentException("Размер файла не должен превышать 5MB");
-        }
-
-        if (!isSupportedImageType(imagePart.getContentType())) {
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/"))
             throw new IllegalArgumentException("Файл не является изображением");
-        }
     }
 
-    private boolean isSupportedImageType(String contentType) {
-        return contentType != null && (
-                contentType.split("/")[0].equals("image"));
-    }
-
-    private String generateFileName(Part part) {
-        String extension = getFileExtension(part);
-        return UUID.randomUUID().toString().substring(0, 8) + extension;
-    }
-
-    private String generateUrl(String dir, String fileName) {
-        return File.separator + UPLOADS_DIR + File.separator + dir + File.separator + fileName;
-    }
-
-    private String getFileExtension(Part part) {
-        String fileName = part.getSubmittedFileName();
-        if (fileName != null && fileName.contains(".")) {
-            return fileName.substring(fileName.lastIndexOf("."));
-        }
+    private String getExtension(MultipartFile file) {
+        String name = file.getOriginalFilename();
+        if (name != null && name.contains("."))
+            return name.substring(name.lastIndexOf("."));
         return ".img";
-    }
-
-    private void saveFile(Part part, String fileUrl) throws IOException {
-        part.write(uploadBasePath + File.separator + fileUrl);
-        part.write(absolutePath + File.separator + fileUrl);
     }
 }

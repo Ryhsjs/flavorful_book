@@ -1,223 +1,192 @@
 package ru.itis.flavorful_book.service;
 
-import ru.itis.flavorful_book.DTO.IngredientDTO;
-import ru.itis.flavorful_book.DTO.RecipeInfoDTO;
-import ru.itis.flavorful_book.DTO.RecipePreviewDTO;
-import ru.itis.flavorful_book.DTO.RecipeSaveDTO;
-import ru.itis.flavorful_book.exception.IllegalRecipeArgumentException;
-import ru.itis.flavorful_book.entity.*;
-import ru.itis.flavorful_book.repository.CategoryRepository;
-import ru.itis.flavorful_book.repository.IngredientRecipeRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.itis.flavorful_book.dto.IngredientDTO;
+import ru.itis.flavorful_book.dto.RecipeDTO;
+import ru.itis.flavorful_book.dto.RecipeInfoDTO;
+import ru.itis.flavorful_book.dto.RecipePreviewDTO;
+import ru.itis.flavorful_book.entity.Category;
+import ru.itis.flavorful_book.entity.Recipe;
+import ru.itis.flavorful_book.entity.User;
+import ru.itis.flavorful_book.exception.EntityNotFoundException;
+import ru.itis.flavorful_book.form.RecipeForm;
 import ru.itis.flavorful_book.repository.RecipeRepository;
-import ru.itis.flavorful_book.repository.UserRepository;
-import ru.itis.flavorful_book.util.validation.Validator;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
+@Service
 public class RecipeServiceImpl implements RecipeService {
+
     private final RecipeRepository recipeRepository;
+    private final CategoryService categoryService;
+    private final IngredientRecipeService ingredientRecipeService;
 
-    private final UserRepository userRepository;
+    @PersistenceContext
+    private EntityManager em;
 
-    private final CategoryRepository categoryRepository;
-
-    private final IngredientRecipeRepository ingredientRecipeRepository;
-
-    private final Validator validator;
-
-    public RecipeServiceImpl(RecipeRepository recipeRepository, UserRepository userRepository,
-                             CategoryRepository categoryRepository,
-                             IngredientRecipeRepository ingredientRecipeRepository, Validator validator) {
+    public RecipeServiceImpl(RecipeRepository recipeRepository,
+                             CategoryService categoryService,
+                             IngredientRecipeService ingredientRecipeService) {
         this.recipeRepository = recipeRepository;
-        this.userRepository = userRepository;
-        this.categoryRepository = categoryRepository;
-        this.ingredientRecipeRepository = ingredientRecipeRepository;
-        this.validator = validator;
+        this.categoryService = categoryService;
+        this.ingredientRecipeService = ingredientRecipeService;
     }
 
     @Override
-    public Recipe save(RecipeSaveDTO recipeSaveDTO) {
-        validateRecipeData(recipeSaveDTO.title(), recipeSaveDTO.instructions(), recipeSaveDTO.activeCookingTime(),
-                recipeSaveDTO.totalCookingTime(), recipeSaveDTO.servings());
-
-        Recipe recipe = new Recipe(recipeSaveDTO.id(), recipeSaveDTO.title(), recipeSaveDTO.description(),
-                recipeSaveDTO.instructions(), recipeSaveDTO.activeCookingTime(), recipeSaveDTO.totalCookingTime(),
-                recipeSaveDTO.servings(), recipeSaveDTO.imageUrl(), null, null,
-                recipeSaveDTO.userId(), null, null);
-
-        if (recipe.getId() == null || !recipeRepository.existsById(recipe.getId())) {
-            return recipeRepository.save(recipe);
-        }
-        if (recipeRepository.update(recipe))
-            return recipeRepository.findById(recipe.getId());
-        else
-            throw new IllegalArgumentException("Что-то пошло не так при сохранение рецепта");
+    @CacheEvict(value = "recipes", allEntries = true)
+    @Transactional
+    public Long create(RecipeForm form, Long userId) {
+        Recipe recipe = new Recipe();
+        recipe.setAuthor(em.getReference(User.class, userId));
+        recipe.setCreatedAt(LocalDateTime.now());
+        applyForm(recipe, form);
+        Long recipeId = recipeRepository.save(recipe).getId();
+        categoryService.saveAll(recipeId, form.getCategories());
+        ingredientRecipeService.saveAll(recipeId, form.getIngredients());
+        return recipeId;
     }
 
     @Override
+    @CacheEvict(value = "recipes", allEntries = true)
+    @Transactional
+    public void update(Long id, RecipeForm form, Long userId) {
+        Recipe recipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Рецепт с id=" + id + " не найден"));
+        recipe.setUpdatedAt(LocalDateTime.now());
+        applyForm(recipe, form);
+        recipeRepository.save(recipe);
+        categoryService.saveAll(id, form.getCategories());
+        ingredientRecipeService.saveAll(id, form.getIngredients());
+    }
+
+    private void applyForm(Recipe recipe, RecipeForm form) {
+        recipe.setTitle(form.getTitle());
+        recipe.setDescription(form.getDescription());
+        recipe.setInstructions(form.getInstructions());
+        recipe.setActiveCookingTime(form.getActiveCookingTime());
+        recipe.setTotalCookingTime(form.getTotalCookingTime());
+        recipe.setServings(form.getServings());
+        recipe.setImageUrl(form.getImageUrl());
+    }
+
+    @Override
+    @Transactional
     public void updateViews(Long id) {
-        validator.validateRecipeExistence(id);
-        recipeRepository.updateViews(id);
+        recipeRepository.incrementViews(id);
     }
 
     @Override
+    @CacheEvict(value = "recipes", allEntries = true)
+    @Transactional
     public boolean deleteById(Long id) {
-        validator.validateRecipeExistence(id);
-        return recipeRepository.deleteById(id);
+        if (!recipeRepository.existsById(id))
+            throw new EntityNotFoundException("Рецепт с id=" + id + " не найден");
+        recipeRepository.deleteById(id);
+        return true;
     }
 
     @Override
-    public RecipeSaveDTO findByIdSaveDTO(Long id) {
-        validator.validateRecipeExistence(id);
-        Recipe recipe = recipeRepository.findById(id);
-        List<Long> categories = categoryRepository.findAllByRecipeId(id).stream().map(Category::getId).toList();
-        List<IngredientDTO> ingredients = ingredientRecipeRepository.findAll(id).stream()
-                .map(ingredientRecipe -> new IngredientDTO(
-                        ingredientRecipe.getId(),
-                        ingredientRecipe.getQuantity(),
-                        ingredientRecipe.getUnit().toString(),
-                        ingredientRecipe.getNotes())
-                ).toList();
-        return new RecipeSaveDTO(id, recipe.getTitle(), recipe.getDescription(), recipe.getInstructions(),
-                recipe.getActiveCookingTime(), recipe.getTotalCookingTime(), recipe.getServings(),
-                recipe.getImageUrl(), recipe.getUserId(), categories, ingredients);
+    @Transactional(readOnly = true)
+    public RecipeDTO findByIdDTO(Long id) {
+        Recipe recipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Рецепт с id=" + id + " не найден"));
+        List<Long> categoryIds = categoryService.findAllByRecipeId(id).stream()
+                .map(Category::getId).toList();
+        List<IngredientDTO> ingredients = ingredientRecipeService.findAllDTOByRecipeId(id);
+        return RecipeDTO.from(recipe, categoryIds, ingredients);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public RecipeInfoDTO findByIdInfoDTO(Long id) {
-        validator.validateRecipeExistence(id);
-        return toRecipeInfoDTO(recipeRepository.findById(id));
+        Recipe recipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Рецепт с id=" + id + " не найден"));
+        return RecipeInfoDTO.from(recipe, recipeRepository.countFavoritesByRecipeId(id));
     }
 
     @Override
+    @Cacheable("recipes")
+    @Transactional(readOnly = true)
     public List<RecipePreviewDTO> findAll() {
-        List<Recipe> recipes = recipeRepository.findAll();
-        return recipes.stream().map(this::toRecipePreviewDTO).collect(Collectors.toList());
+        List<Recipe> recipes = recipeRepository.findAllByOrderByCreatedAtDesc();
+        Map<Long, String> ingredientNames = ingredientRecipeService.getIngredientNamesByRecipeIds(
+                recipes.stream().map(Recipe::getId).toList());
+        return recipes.stream()
+                .map(r -> RecipePreviewDTO.from(r, ingredientNames.getOrDefault(r.getId(), "")))
+                .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RecipePreviewDTO> findAll(List<Long> ingredients, boolean isStrictMatchIngredients,
                                           List<Long> categories, boolean isStrictMatchCategories,
-                                          Integer activeStart, Integer activeEnd, Integer totalStart, Integer totalEnd) {
-
-        List<Recipe> recipes = recipeRepository.findAll(ingredients, isStrictMatchIngredients,
-                categories, isStrictMatchCategories, getTimeStart(activeStart), getTimeEnd(activeEnd),
-                getTimeStart(totalStart), getTimeEnd(totalEnd));
-
-        return recipes.stream().map(this::toRecipePreviewDTO).collect(Collectors.toList());
+                                          Integer activeStart, Integer activeEnd,
+                                          Integer totalStart, Integer totalEnd) {
+        List<Recipe> recipes = recipeRepository.findWithFilters(
+                ingredients, isStrictMatchIngredients,
+                categories, isStrictMatchCategories,
+                timeStart(activeStart), timeEnd(activeEnd),
+                timeStart(totalStart), timeEnd(totalEnd));
+        Map<Long, String> ingredientNames = ingredientRecipeService.getIngredientNamesByRecipeIds(
+                recipes.stream().map(Recipe::getId).toList());
+        return recipes.stream()
+                .map(r -> RecipePreviewDTO.from(r, ingredientNames.getOrDefault(r.getId(), "")))
+                .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RecipePreviewDTO> findManyByUserFavorites(Long userId) {
-        validator.validateUserExistence(userId);
-        List<Recipe> recipes = recipeRepository.findAllByUserFavorites(userId);
-        return recipes.stream().map(this::toRecipePreviewDTO).collect(Collectors.toList());
+        List<Recipe> recipes = recipeRepository.findAllFavoritesByUser(userId);
+        Map<Long, String> ingredientNames = ingredientRecipeService.getIngredientNamesByRecipeIds(
+                recipes.stream().map(Recipe::getId).toList());
+        return recipes.stream()
+                .map(r -> RecipePreviewDTO.from(r, ingredientNames.getOrDefault(r.getId(), "")))
+                .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RecipePreviewDTO> findManyByUserId(Long userId) {
-        validator.validateUserExistence(userId);
-        List<Recipe> recipes = recipeRepository.findAllByUserId(userId);
-        return recipes.stream().map(this::toRecipePreviewDTO).collect(Collectors.toList());
+        List<Recipe> recipes = recipeRepository.findAllByAuthor_IdOrderByCreatedAtDesc(userId);
+        Map<Long, String> ingredientNames = ingredientRecipeService.getIngredientNamesByRecipeIds(
+                recipes.stream().map(Recipe::getId).toList());
+        return recipes.stream()
+                .map(r -> RecipePreviewDTO.from(r, ingredientNames.getOrDefault(r.getId(), "")))
+                .toList();
     }
 
     @Override
+    @Transactional
     public void addToFavorites(Long userId, Long recipeId) {
         recipeRepository.addToFavorites(userId, recipeId);
     }
 
     @Override
+    @Transactional
     public void deleteFromFavorites(Long userId, Long recipeId) {
-        recipeRepository.deleteFromFavorites(userId, recipeId);
+        recipeRepository.removeFromFavorites(userId, recipeId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean isInFavorites(Long userId, Long recipeId) {
-        try {
-            return recipeRepository.isInFavorites(userId, recipeId);
-        } catch (RuntimeException ignored) {
-            System.out.println("sdsad");
-            return false;
-        }
+        return recipeRepository.isInFavorites(userId, recipeId);
     }
 
-    private RecipeInfoDTO toRecipeInfoDTO(Recipe recipe) {
-        User user = userRepository.findById(recipe.getUserId());
-        return new RecipeInfoDTO(
-                recipe.getId(),
-                recipe.getTitle(),
-                recipe.getDescription(),
-                recipe.getInstructions(),
-                recipe.getActiveCookingTime(),
-                recipe.getTotalCookingTime(),
-                recipe.getServings(),
-                recipe.getImageUrl(),
-                recipe.getCreatedAt(),
-                recipe.getUpdateAt(),
-                recipe.getUserId(),
-                user.getUsername(),
-                user.getAvatarUrl(),
-                recipe.getViews(),
-                userRepository.countByFavorites(recipe.getId()),
-                recipe.getRating()
-        );
+    private int timeStart(Integer value) {
+        return value == null ? 0 : value;
     }
 
-    private RecipePreviewDTO toRecipePreviewDTO(Recipe recipe) {
-        User user = userRepository.findById(recipe.getUserId());
-
-        return new RecipePreviewDTO(
-                recipe.getId(),
-                recipe.getTitle(),
-                recipe.getDescription(),
-                recipe.getActiveCookingTime(),
-                recipe.getTotalCookingTime(),
-                recipe.getImageUrl(),
-                recipe.getCreatedAt(),
-                recipe.getUserId(),
-                user.getUsername(),
-                recipe.getRating(),
-                getRecipeIngredients(recipe.getId())
-        );
+    private int timeEnd(Integer value) {
+        return value == null ? 1440 : value;
     }
 
-    private String getRecipeIngredients(Long recipeId) {
-        List<IngredientRecipe> ingredients = ingredientRecipeRepository.findAll(recipeId);
-
-        return ingredients.stream()
-                .map(Ingredient::getName)
-                .map(String::toLowerCase)
-                .collect(Collectors.joining(", "));
-    }
-
-    private int getTimeStart(Integer timeStart) {
-        if (timeStart == null)
-            return 0;
-        return timeStart;
-    }
-
-    private int getTimeEnd(Integer timeEnd) {
-        if (timeEnd == null)
-            return 1440;
-        return timeEnd;
-    }
-
-    private void validateRecipeData(String title, String instructions, Integer activeCookingTime,
-                                    Integer totalCookingTime, Integer servings) {
-        IllegalRecipeArgumentException exception = new IllegalRecipeArgumentException("Ошибка при создании рецепта");
-
-        exception.setTitleState(validator.checkString(title, 1, 255));
-        exception.setInstructionsState(validator.checkString(instructions));
-        exception.setActiveCookingTimeState(validator.checkNumber(activeCookingTime, 0, 1440));
-        exception.setTotalCookingTimeState(validator.checkNumber(totalCookingTime, 0, 1440));
-        exception.setServingsState(validator.checkNumber(servings, 0, 100));
-
-        if (activeCookingTime != null && totalCookingTime != null && activeCookingTime > totalCookingTime)
-            exception.setCookingTimeState("Активное время готовки не может быть больше общего");
-
-
-        if (exception.isShouldThrow())
-            throw exception;
-    }
 }

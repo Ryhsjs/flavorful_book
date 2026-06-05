@@ -1,5 +1,8 @@
-package ru.itis.flavorful_book.DTO;
+package ru.itis.flavorful_book.dto;
 
+import ru.itis.flavorful_book.entity.Recipe;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record RecipePreviewDTO(
@@ -12,7 +15,22 @@ public record RecipePreviewDTO(
         LocalDateTime createdAt,
         Long userId,
         String username,
-        Float rating,
+        BigDecimal rating,
         String ingredients
 ) {
+    public static RecipePreviewDTO from(Recipe recipe, String ingredientNames) {
+        return new RecipePreviewDTO(
+                recipe.getId(),
+                recipe.getTitle(),
+                recipe.getDescription(),
+                recipe.getActiveCookingTime(),
+                recipe.getTotalCookingTime(),
+                recipe.getImageUrl(),
+                recipe.getCreatedAt(),
+                recipe.getAuthor().getId(),
+                recipe.getAuthor().getUsername(),
+                recipe.getRating(),
+                ingredientNames
+        );
+    }
 }

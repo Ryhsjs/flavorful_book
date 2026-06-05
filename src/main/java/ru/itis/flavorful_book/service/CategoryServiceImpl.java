@@ -1,79 +1,84 @@
 package ru.itis.flavorful_book.service;
 
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.itis.flavorful_book.entity.Category;
+import ru.itis.flavorful_book.exception.EntityNotFoundException;
 import ru.itis.flavorful_book.repository.CategoryRepository;
-import ru.itis.flavorful_book.util.validation.Validator;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+@Service
 public class CategoryServiceImpl implements CategoryService {
+
     private final CategoryRepository categoryRepository;
 
-    private final Validator validator;
-
-    public CategoryServiceImpl(CategoryRepository categoryRepository, Validator validator) {
+    public CategoryServiceImpl(CategoryRepository categoryRepository) {
         this.categoryRepository = categoryRepository;
-        this.validator = validator;
     }
 
     @Override
-    public void save(Long recipeId, Long category) {
-         try {
-             categoryRepository.save(recipeId, category);
-        } catch (RuntimeException ignored) {}
+    @Transactional
+    public void save(Long recipeId, Long categoryId) {
+        categoryRepository.addToRecipe(recipeId, categoryId);
     }
 
     @Override
+    @Transactional
     public void saveAll(Long recipeId, List<Long> categories) {
-        validator.validateRecipeExistence(recipeId);
+        Set<Long> current = categoryRepository.findAllByRecipeId(recipeId).stream()
+                .map(Category::getId)
+                .collect(Collectors.toSet());
+        Set<Long> incoming = new HashSet<>(categories);
 
-        List<Long> recipeCategories = new java.util.ArrayList<>(categoryRepository.findAllByRecipeId(recipeId).stream()
-                .map(Category::getId).toList());
+        incoming.stream()
+                .filter(id -> !current.contains(id))
+                .forEach(id -> categoryRepository.addToRecipe(recipeId, id));
 
-        for (Long categoryId: categories) {
-            recipeCategories.remove(categoryId);
-
-            save(recipeId, categoryId);
+        Set<Long> toRemove = current.stream()
+                .filter(id -> !incoming.contains(id))
+                .collect(Collectors.toSet());
+        if (!toRemove.isEmpty()) {
+            categoryRepository.removeAllFromRecipe(recipeId, toRemove);
         }
-
-        deleteAll(recipeId, recipeCategories);
     }
 
     @Override
-    public void delete(Long recipeId, Long category) {
-        try {
-             categoryRepository.delete(recipeId, category);
-        } catch (RuntimeException ignored) {}
+    @Transactional
+    public void delete(Long recipeId, Long categoryId) {
+        categoryRepository.removeFromRecipe(recipeId, categoryId);
     }
 
     @Override
+    @Transactional
     public void deleteAll(Long recipeId, List<Long> categories) {
-        validator.validateRecipeExistence(recipeId);
-
-        for (Long categoryId: categories) {
-            delete(recipeId, categoryId);
+        if (!categories.isEmpty()) {
+            categoryRepository.removeAllFromRecipe(recipeId, categories);
         }
     }
 
     @Override
+    @Cacheable("categories")
+    @Transactional(readOnly = true)
     public List<Category> findAll() {
         return categoryRepository.findAll();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Category> findByParentId(Long parentId) {
-        validateCategoryExistence(parentId);
+        if (!categoryRepository.existsById(parentId))
+            throw new EntityNotFoundException("Категория с id=" + parentId + " не найдена");
         return categoryRepository.findAllByParentId(parentId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Category> findAllByRecipeId(Long recipeId) {
-        validator.validateRecipeExistence(recipeId);
         return categoryRepository.findAllByRecipeId(recipeId);
-    }
-
-    private void validateCategoryExistence(Long categoryId) {
-        if (!categoryRepository.exists(categoryId))
-            throw new IllegalArgumentException("Такой категории не существует");
     }
 }
