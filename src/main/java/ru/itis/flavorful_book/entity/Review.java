@@ -27,6 +27,7 @@ public class Review {
     @JoinColumn(name = "recipe_id", nullable = false)
     private Recipe recipe;
 
+    @Column(nullable = false)
     private Integer rating;
 
     @Column(nullable = false, columnDefinition = "TEXT")

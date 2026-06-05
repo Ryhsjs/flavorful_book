@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS reviews
     id         BIGSERIAL PRIMARY KEY,
     user_id    BIGINT   NOT NULL,
     recipe_id  BIGINT   NOT NULL,
-    rating     SMALLINT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    rating     INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
     comment    TEXT     NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT NULL,

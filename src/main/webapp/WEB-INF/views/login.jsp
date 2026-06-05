@@ -12,7 +12,7 @@
         </c:if>
         <label for="username">
             Email:
-            <input class="full-width" type="email" id="username" name="username" placeholder="Введите">
+            <input class="full-width" type="text" id="username" name="username" placeholder="Введите">
         </label>
         <label for="password">
             Пароль:
