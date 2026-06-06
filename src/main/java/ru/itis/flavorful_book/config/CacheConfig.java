@@ -63,7 +63,8 @@ public class CacheConfig implements CachingConfigurer {
                 .withInitialCacheConfigurations(Map.of(
                         "categories", cacheConfig(Duration.ofHours(1)),
                         "ingredients", cacheConfig(Duration.ofHours(1)),
-                        "recipes", cacheConfig(Duration.ofMinutes(10))
+                        "recipes", cacheConfig(Duration.ofMinutes(10)),
+                        "mealOfTheDay", cacheConfig(Duration.ofHours(1))
                 ))
                 .build();
     }

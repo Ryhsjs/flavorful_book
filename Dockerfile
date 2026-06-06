@@ -1,4 +1,4 @@
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 
 COPY pom.xml .
@@ -7,12 +7,12 @@ RUN mvn dependency:go-offline -B
 COPY src ./src
 RUN mvn package -DskipTests -B
 
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
-RUN mkdir -p logs
+RUN mkdir -p logs /uploads
 
-COPY --from=build /app/target/app.war app.war
+COPY --from=build /app/target/flavorful_book.war app.war
 
 EXPOSE 8080
 

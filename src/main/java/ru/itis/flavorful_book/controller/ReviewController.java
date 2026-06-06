@@ -1,5 +1,9 @@
 package ru.itis.flavorful_book.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +25,7 @@ import ru.itis.flavorful_book.util.ValidationUtils;
 
 import java.util.List;
 
+@Tag(name = "Отзывы", description = "Управление отзывами к рецептам")
 @RestController
 @RequestMapping("/recipes/{recipeId}/reviews")
 public class ReviewController {
@@ -31,14 +36,30 @@ public class ReviewController {
         this.reviewService = reviewService;
     }
 
+    @Operation(
+        summary = "Получить все отзывы к рецепту",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Список отзывов")
+        }
+    )
     @GetMapping
-    public ResponseEntity<List<ReviewDTO>> findAll(@PathVariable Long recipeId) {
+    public ResponseEntity<List<ReviewDTO>> findAll(
+            @Parameter(description = "ID рецепта") @PathVariable Long recipeId) {
         return ResponseEntity.ok(reviewService.findAllByRecipeId(recipeId));
     }
 
+    @Operation(
+        summary = "Оставить отзыв",
+        description = "Создаёт новый отзыв к рецепту от текущего пользователя.",
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Отзыв сохранён"),
+            @ApiResponse(responseCode = "400", description = "Ошибки валидации"),
+            @ApiResponse(responseCode = "401", description = "Не аутентифицирован")
+        }
+    )
     @PostMapping(consumes = "application/json")
     public ResponseEntity<?> save(
-            @PathVariable Long recipeId,
+            @Parameter(description = "ID рецепта") @PathVariable Long recipeId,
             @Valid @RequestBody ReviewForm form,
             BindingResult errors,
             @AuthenticationPrincipal CustomeUserDetails currentUser) {
@@ -49,10 +70,19 @@ public class ReviewController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @Operation(
+        summary = "Обновить отзыв",
+        description = "Редактирует отзыв. Только автор отзыва может его изменить.",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Отзыв обновлён"),
+            @ApiResponse(responseCode = "400", description = "Ошибки валидации"),
+            @ApiResponse(responseCode = "403", description = "Нет прав")
+        }
+    )
     @PutMapping(value = "/{id}", consumes = "application/json")
     public ResponseEntity<?> update(
-            @PathVariable Long recipeId,
-            @PathVariable Long id,
+            @Parameter(description = "ID рецепта") @PathVariable Long recipeId,
+            @Parameter(description = "ID отзыва") @PathVariable Long id,
             @Valid @RequestBody ReviewForm form,
             BindingResult errors,
             @AuthenticationPrincipal CustomeUserDetails currentUser) {
@@ -67,10 +97,18 @@ public class ReviewController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(
+        summary = "Удалить отзыв",
+        description = "Удаляет отзыв. Только автор может удалить свой отзыв.",
+        responses = {
+            @ApiResponse(responseCode = "204", description = "Отзыв удалён"),
+            @ApiResponse(responseCode = "403", description = "Нет прав")
+        }
+    )
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
-            @PathVariable Long recipeId,
-            @PathVariable Long id,
+            @Parameter(description = "ID рецепта") @PathVariable Long recipeId,
+            @Parameter(description = "ID отзыва") @PathVariable Long id,
             @AuthenticationPrincipal CustomeUserDetails currentUser) {
         ReviewDTO review = reviewService.findById(id);
         if (!review.userId().equals(currentUser.getId())) {

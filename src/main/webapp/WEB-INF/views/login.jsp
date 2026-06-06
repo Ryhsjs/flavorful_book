@@ -11,7 +11,7 @@
             </div>
         </c:if>
         <label for="username">
-            Email:
+            Имя пользователя:
             <input class="full-width" type="text" id="username" name="username" placeholder="Введите">
         </label>
         <label for="password">

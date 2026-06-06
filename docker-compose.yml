@@ -45,6 +45,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
+    volumes:
+      - flavorful_book_uploads:/uploads
 
 volumes:
   flavorful_book_postgres_data:
+  flavorful_book_uploads:
