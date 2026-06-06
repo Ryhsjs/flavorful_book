@@ -5,8 +5,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.itis.flavorful_book.exception.ImageSaveException;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.UUID;
 
 @Service
@@ -15,16 +17,20 @@ public class ImageServiceImpl implements ImageService {
     private static final String RECIPE_DIR = "recipe";
     private static final String AVATAR_DIR = "avatar";
 
-    private final String uploadDir;
+    private final Path uploadRoot;
 
     public ImageServiceImpl(@Value("${app.upload.dir}") String uploadDir) {
-        this.uploadDir = uploadDir;
+        this.uploadRoot = Paths.get(uploadDir);
         createDirectories();
     }
 
     private void createDirectories() {
-        new File(uploadDir + File.separator + RECIPE_DIR).mkdirs();
-        new File(uploadDir + File.separator + AVATAR_DIR).mkdirs();
+        try {
+            Files.createDirectories(uploadRoot.resolve(RECIPE_DIR));
+            Files.createDirectories(uploadRoot.resolve(AVATAR_DIR));
+        } catch (IOException e) {
+            throw new RuntimeException("Не удалось создать директории для загрузок", e);
+        }
     }
 
     @Override
@@ -40,13 +46,14 @@ public class ImageServiceImpl implements ImageService {
     private String save(MultipartFile file, String subDir) {
         validateFile(file);
         String fileName = UUID.randomUUID().toString().substring(0, 8) + getExtension(file);
-        String relativePath = File.separator + subDir + File.separator + fileName;
+        Path destination = uploadRoot.resolve(subDir).resolve(fileName);
         try {
-            file.transferTo(new File(uploadDir + relativePath));
+            file.transferTo(destination);
         } catch (IOException e) {
             throw new ImageSaveException("Не удалось сохранить файл", e);
         }
-        return relativePath;
+        // возвращаем URL-путь, который будет обслуживаться resource handler-ом
+        return "/uploads/" + subDir + "/" + fileName;
     }
 
     private void validateFile(MultipartFile file) {

@@ -34,7 +34,7 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login", "/signup", "/error").permitAll()
-                .requestMatchers("/WEB-INF/**", "/css/**", "/js/**", "/img/**", "/uploads/**").permitAll()
+                .requestMatchers("/WEB-INF/**", "/css/**", "/js/**", "/uploads/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/", "/recipes", "/recipes/**").permitAll()
                 .anyRequest().authenticated()

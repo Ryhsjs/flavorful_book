@@ -1,0 +1,475 @@
+{
+  "info": {
+    "name": "Flavorful Book",
+    "description": "Тесты REST API. Запускать в порядке: Auth → Recipes → Favorites → Reviews → Errors.\nПеред запуском убедитесь, что приложение запущено и пользователь зарегистрирован.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",    "value": "http://localhost:8080/flavorful_book", "type": "string" },
+    { "key": "username",   "value": "ropoy",  "type": "string" },
+    { "key": "password",   "value": "123456", "type": "string" },
+    { "key": "xsrfToken", "value": "",       "type": "string" },
+    { "key": "recipeId",  "value": "",       "type": "string" },
+    { "key": "reviewId",  "value": "",       "type": "string" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Подставляем сохранённый XSRF-TOKEN как заголовок",
+          "const token = pm.collectionVariables.get('xsrfToken');",
+          "if (token) {",
+          "    pm.request.headers.upsert({ key: 'X-XSRF-TOKEN', value: token });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "GET / — получить CSRF-токен",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Главная страница доступна (200)', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Извлекаем XSRF-TOKEN из заголовка Set-Cookie",
+                  "const setCookieHeader = pm.response.headers.get('Set-Cookie') || '';",
+                  "const match = setCookieHeader.match(/XSRF-TOKEN=([^;]+)/);",
+                  "if (match) {",
+                  "    const token = decodeURIComponent(match[1]);",
+                  "    pm.collectionVariables.set('xsrfToken', token);",
+                  "    console.log('XSRF-TOKEN сохранён:', token);",
+                  "} else {",
+                  "    // Fallback: пробуем через pm.cookies",
+                  "    const cookieToken = pm.cookies.get('XSRF-TOKEN');",
+                  "    if (cookieToken) {",
+                  "        pm.collectionVariables.set('xsrfToken', decodeURIComponent(cookieToken));",
+                  "    }",
+                  "}",
+                  "",
+                  "pm.test('XSRF-TOKEN получен', () => {",
+                  "    pm.expect(pm.collectionVariables.get('xsrfToken')).to.not.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/"
+          }
+        },
+        {
+          "name": "POST /login — войти",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Логин успешен (200 после редиректа)', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Обновляем XSRF-TOKEN после логина — сервер выдаёт новый",
+                  "const setCookieHeader = pm.response.headers.get('Set-Cookie') || '';",
+                  "const match = setCookieHeader.match(/XSRF-TOKEN=([^;]+)/);",
+                  "if (match) {",
+                  "    pm.collectionVariables.set('xsrfToken', decodeURIComponent(match[1]));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/login",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "{{username}}" },
+                { "key": "password", "value": "{{password}}" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Recipes",
+      "item": [
+        {
+          "name": "POST /recipes — создать рецепт",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Рецепт создан (201)', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Тело содержит id', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('id');",
+                  "    pm.expect(body.id).to.be.a('number');",
+                  "});",
+                  "const id = pm.response.json().id;",
+                  "pm.collectionVariables.set('recipeId', id);",
+                  "console.log('recipeId сохранён:', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recipes",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Паста карбонара\",\n  \"description\": \"Классическая итальянская паста\",\n  \"instructions\": \"1. Сварить пасту.\\n2. Обжарить бекон.\\n3. Смешать с яйцами.\",\n  \"activeCookingTime\": 20,\n  \"totalCookingTime\": 30,\n  \"servings\": 2,\n  \"categoryIds\": [],\n  \"ingredients\": [\n    { \"ingredientName\": \"Спагетти\", \"quantity\": 200, \"unit\": \"GRAMS\" },\n    { \"ingredientName\": \"Бекон\",    \"quantity\": 100, \"unit\": \"GRAMS\" }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "PUT /recipes/{{recipeId}} — обновить рецепт",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Рецепт обновлён (200)', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/recipes/{{recipeId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Паста карбонара (обновлено)\",\n  \"description\": \"Классическая итальянская паста\",\n  \"instructions\": \"1. Сварить пасту.\\n2. Обжарить бекон.\\n3. Смешать с яйцами.\",\n  \"activeCookingTime\": 25,\n  \"totalCookingTime\": 35,\n  \"servings\": 4,\n  \"categoryIds\": [],\n  \"ingredients\": [\n    { \"ingredientName\": \"Спагетти\", \"quantity\": 400, \"unit\": \"GRAMS\" }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Favorites",
+      "item": [
+        {
+          "name": "POST /recipes/{{recipeId}}/favorites — добавить в избранное",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Добавлено в избранное (200)', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recipes/{{recipeId}}/favorites"
+          }
+        },
+        {
+          "name": "DELETE /recipes/{{recipeId}}/favorites — убрать из избранного",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Убрано из избранного (200)', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/recipes/{{recipeId}}/favorites"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Reviews",
+      "item": [
+        {
+          "name": "GET /recipes/{{recipeId}}/reviews — получить отзывы",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Список отзывов (200)', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Ответ — массив', () => {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/recipes/{{recipeId}}/reviews",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ]
+          }
+        },
+        {
+          "name": "POST /recipes/{{recipeId}}/reviews — оставить отзыв",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Отзыв создан (201)', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recipes/{{recipeId}}/reviews",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Очень вкусно, рекомендую!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /recipes/{{recipeId}}/reviews — сохранить reviewId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Отзывы загружены (200)', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const reviews = pm.response.json();",
+                  "pm.test('Есть хотя бы один отзыв', () => {",
+                  "    pm.expect(reviews.length).to.be.greaterThan(0);",
+                  "});",
+                  "if (reviews.length > 0) {",
+                  "    const id = reviews[reviews.length - 1].id;",
+                  "    pm.collectionVariables.set('reviewId', id);",
+                  "    console.log('reviewId сохранён:', id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/recipes/{{recipeId}}/reviews",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ]
+          }
+        },
+        {
+          "name": "PUT /recipes/{{recipeId}}/reviews/{{reviewId}} — обновить отзыв",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Отзыв обновлён (200)', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/recipes/{{recipeId}}/reviews/{{reviewId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"comment\": \"Хороший рецепт, но немного солоновато.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "DELETE /recipes/{{recipeId}}/reviews/{{reviewId}} — удалить отзыв",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Отзыв удалён (204)', () => {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/recipes/{{recipeId}}/reviews/{{reviewId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Ошибки валидации",
+      "item": [
+        {
+          "name": "POST /recipes — пустое название → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Ошибка валидации (400)', () => {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Тело содержит ошибки полей', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.be.an('object');",
+                  "    pm.expect(Object.keys(body).length).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recipes",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"instructions\": \"Инструкции\",\n  \"activeCookingTime\": 10,\n  \"totalCookingTime\": 10,\n  \"servings\": 1,\n  \"ingredients\": []\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /recipes/{{recipeId}}/reviews — невалидный рейтинг → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Ошибка валидации (400)', () => {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/recipes/{{recipeId}}/reviews",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 10,\n  \"comment\": \"Слишком высокая оценка\"\n}"
+            }
+          }
+        },
+        {
+          "name": "DELETE /recipes/99999 — несуществующий рецепт → 404 или 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Ошибка (403 или 404)', () => {",
+                  "    pm.expect([403, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/recipes/99999"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Cleanup",
+      "item": [
+        {
+          "name": "DELETE /recipes/{{recipeId}} — удалить рецепт",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Рецепт удалён (204)', () => {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/recipes/{{recipeId}}"
+          }
+        },
+        {
+          "name": "POST /logout — выйти",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Выход успешен (200)', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/logout"
+          }
+        }
+      ]
+    }
+  ]
+}

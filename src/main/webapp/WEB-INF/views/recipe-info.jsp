@@ -30,13 +30,13 @@
 
             <div class="fr recipe-stats">
                 <h1><c:out value="${recipe.title()}"/></h1>
-                <c:if test="${recipe.rating() != 0.0}">
+                <c:if test="${recipe.rating() != null}">
                     <h2 class="fr stars">
                         <i class="fa-solid fa-star"></i>
                         <b>${recipe.rating()}</b>
                     </h2>
                 </c:if>
-                <c:if test="${recipe.rating() == 0.0}">
+                <c:if test="${recipe.rating() == null}">
                     <p class="text-subtle"><b>(Пока нет оценки)</b></p>
                 </c:if>
             </div>
@@ -76,11 +76,11 @@
             <ul class="ingredients-list">
                 <c:forEach var="ingredient" items="${recipeIngredients}">
                     <li>
-                        <c:out value="${ingredient.name}"/>
-                        <c:if test="${not empty ingredient.notes}">
-                            (<c:out value="${ingredient.notes}"/>)
+                        <c:out value="${ingredient.name()}"/>
+                        <c:if test="${not empty ingredient.notes()}">
+                            (<c:out value="${ingredient.notes()}"/>)
                         </c:if>
-                        — ${ingredient.quantity} ${ingredient.unit.unit}
+                        — ${ingredient.quantity()} ${ingredient.unit().unit}
                     </li>
                 </c:forEach>
             </ul>

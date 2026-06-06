@@ -161,6 +161,31 @@ async function uploadImage() {
     }
 }
 
+async function submitReview() {
+    const recipeId = getRecipeIdFromPath();
+    const reviewId = document.getElementById('reviewId')?.value;
+    const rating = parseInt(document.getElementById('rating').value);
+    const comment = document.getElementById('comment').value;
+
+    const isNew = !reviewId;
+    const url = isNew
+        ? CONTEXT_PATH + '/recipes/' + recipeId + '/reviews'
+        : CONTEXT_PATH + '/recipes/' + recipeId + '/reviews/' + reviewId;
+
+    const response = await fetch(url, {
+        method: isNew ? 'POST' : 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-XSRF-TOKEN': getCsrfToken()
+        },
+        body: JSON.stringify({ rating, comment })
+    });
+
+    if (response.ok) {
+        location.reload();
+    }
+}
+
 function changeReview() {
     const textInput = document.getElementById('comment');
     const reviewFooter = document.getElementById('review-footer');
