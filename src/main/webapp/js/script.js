@@ -40,11 +40,16 @@ async function deleteReview(id) {
     }
 }
 
-function logout() {
+async function logout() {
     const result = confirm("Вы уверены, что хотите выйти?");
 
-    if (result)
-        window.location.href = (BASE_URL + "/logout");
+    if (result) {
+        await fetch(CONTEXT_PATH + '/logout', {
+            method: 'POST',
+            headers: { 'X-XSRF-TOKEN': getCsrfToken() }
+        });
+        window.location.href = BASE_URL + '/';
+    }
 }
 
 function cancel() {

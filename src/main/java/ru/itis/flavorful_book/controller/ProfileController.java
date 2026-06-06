@@ -48,6 +48,7 @@ public class ProfileController {
         }
         try {
             userService.update(currentUser.getId(), form.getUsername(), form.getAvatarUrl());
+            currentUser.update(form.getUsername(), form.getAvatarUrl());
         } catch (IllegalUserArgumentException e) {
             errors.rejectValue("username", "username.taken", e.getUsernameState());
             populateModel(model, currentUser.getId(), "my");

@@ -55,4 +55,9 @@ public class CustomeUserDetails implements UserDetails {
     public String getAvatarUrl() {
         return user.getAvatarUrl();
     }
+
+    public void update(String username, String avatarUrl) {
+        user.setUsername(username);
+        user.setAvatarUrl(avatarUrl);
+    }
 }

@@ -1,9 +1,9 @@
-<%@ tag description="popup for profile editing" pageEncoding="UTF-8" isELIgnored="false" %>
+﻿<%@ tag description="popup for profile editing" pageEncoding="UTF-8" isELIgnored="false" %>
 <%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
 <%@ attribute name="avatarUrl" required="true" %>
 <div class="fr blockout none" id="blockout">
-    <div class="fA popup" id="popup">
+    <div class="fc popup" id="popup">
         <section class="fc user-edit">
             <figure class="user-figure">
                 <t:img-user size="fa-6x" url="${avatarUrl}"/>
