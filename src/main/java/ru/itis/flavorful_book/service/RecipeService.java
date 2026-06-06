@@ -3,7 +3,6 @@ package ru.itis.flavorful_book.service;
 import ru.itis.flavorful_book.dto.RecipeDTO;
 import ru.itis.flavorful_book.dto.RecipeInfoDTO;
 import ru.itis.flavorful_book.dto.RecipePreviewDTO;
-import ru.itis.flavorful_book.entity.Recipe;
 import ru.itis.flavorful_book.form.RecipeForm;
 
 import java.util.List;

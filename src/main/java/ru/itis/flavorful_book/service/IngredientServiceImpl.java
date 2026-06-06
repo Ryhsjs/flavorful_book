@@ -3,8 +3,8 @@ package ru.itis.flavorful_book.service;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.itis.flavorful_book.exception.EntityNotFoundException;
 import ru.itis.flavorful_book.entity.Ingredient;
+import ru.itis.flavorful_book.exception.EntityNotFoundException;
 import ru.itis.flavorful_book.repository.IngredientRepository;
 
 import java.util.List;
