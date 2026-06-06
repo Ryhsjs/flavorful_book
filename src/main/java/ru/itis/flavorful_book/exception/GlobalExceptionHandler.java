@@ -17,6 +17,19 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(ForbiddenException.class)
+    public Object handleForbidden(ForbiddenException ex,
+                                  HttpServletRequest request,
+                                  HttpServletResponse response) {
+        log.warn("Forbidden: {}", ex.getMessage());
+        if (isApiRequest(request)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", ex.getMessage()));
+        }
+        response.setStatus(HttpStatus.FORBIDDEN.value());
+        return new ModelAndView("errors/403");
+    }
+
     @ExceptionHandler(EntityNotFoundException.class)
     public Object handleEntityNotFound(EntityNotFoundException ex,
                                        HttpServletRequest request,

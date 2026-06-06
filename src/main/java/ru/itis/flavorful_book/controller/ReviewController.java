@@ -82,11 +82,7 @@ public class ReviewController {
         if (errors.hasErrors()) {
             return ResponseEntity.badRequest().body(ValidationUtils.extractFieldErrors(errors));
         }
-        ReviewDTO review = reviewService.findById(id);
-        if (!review.userId().equals(currentUser.getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        reviewService.update(id, form.getRating(), form.getComment());
+        reviewService.update(id, currentUser.getId(), form.getRating(), form.getComment());
         return ResponseEntity.ok().build();
     }
 
@@ -103,11 +99,7 @@ public class ReviewController {
             @Parameter(description = "ID рецепта") @PathVariable Long recipeId,
             @Parameter(description = "ID отзыва") @PathVariable Long id,
             @AuthenticationPrincipal CustomeUserDetails currentUser) {
-        ReviewDTO review = reviewService.findById(id);
-        if (!review.userId().equals(currentUser.getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        reviewService.deleteById(id);
+        reviewService.deleteById(id, currentUser.getId());
         return ResponseEntity.noContent().build();
     }
 }

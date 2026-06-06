@@ -96,10 +96,10 @@ public class RecipeController {
     public String editPage(@PathVariable Long id,
                            @AuthenticationPrincipal CustomeUserDetails currentUser,
                            Model model) {
-        RecipeDTO recipe = recipeService.findByIdDTO(id);
-        if (!recipe.authorId().equals(currentUser.getId())) {
+        if (!recipeService.isOwner(id, currentUser.getId())) {
             return "redirect:/recipes/" + id;
         }
+        RecipeDTO recipe = recipeService.findByIdDTO(id);
         model.addAttribute("recipe", recipe);
         model.addAttribute("units", Unit.values());
         return "recipe-edit";

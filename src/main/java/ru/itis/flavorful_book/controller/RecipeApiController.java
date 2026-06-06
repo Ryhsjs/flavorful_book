@@ -67,9 +67,6 @@ public class RecipeApiController {
         if (errors.hasErrors()) {
             return ResponseEntity.badRequest().body(ValidationUtils.extractFieldErrors(errors));
         }
-        if (!recipeService.findByIdInfoDTO(id).userId().equals(currentUser.getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
         recipeService.update(id, form, currentUser.getId());
         return ResponseEntity.ok().build();
     }
@@ -86,10 +83,7 @@ public class RecipeApiController {
     public ResponseEntity<Void> delete(
             @Parameter(description = "ID рецепта") @PathVariable Long id,
             @AuthenticationPrincipal CustomeUserDetails currentUser) {
-        if (!recipeService.findByIdInfoDTO(id).userId().equals(currentUser.getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        recipeService.deleteById(id);
+        recipeService.deleteById(id, currentUser.getId());
         return ResponseEntity.noContent().build();
     }
 

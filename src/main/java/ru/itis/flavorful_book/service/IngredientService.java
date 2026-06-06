@@ -2,10 +2,13 @@ package ru.itis.flavorful_book.service;
 
 import ru.itis.flavorful_book.entity.Ingredient;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface IngredientService {
     Ingredient findById(Long id);
+
+    List<Ingredient> findAllByIds(Collection<Long> ids);
 
     List<Ingredient> findAll();
 

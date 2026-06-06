@@ -7,9 +7,9 @@ import java.util.List;
 public interface ReviewService {
     void save(Long userId, Long recipeId, Integer rating, String comment);
 
-    boolean update(Long id, Integer rating, String comment);
+    boolean update(Long id, Long userId, Integer rating, String comment);
 
-    boolean deleteById(Long id);
+    boolean deleteById(Long id, Long userId);
 
     ReviewDTO findById(Long id);
 

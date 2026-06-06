@@ -1,7 +1,5 @@
 package ru.itis.flavorful_book.service;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -12,8 +10,8 @@ import ru.itis.flavorful_book.dto.RecipeInfoDTO;
 import ru.itis.flavorful_book.dto.RecipePreviewDTO;
 import ru.itis.flavorful_book.entity.Category;
 import ru.itis.flavorful_book.entity.Recipe;
-import ru.itis.flavorful_book.entity.User;
 import ru.itis.flavorful_book.exception.EntityNotFoundException;
+import ru.itis.flavorful_book.exception.ForbiddenException;
 import ru.itis.flavorful_book.form.RecipeForm;
 import ru.itis.flavorful_book.repository.RecipeRepository;
 
@@ -27,16 +25,23 @@ public class RecipeServiceImpl implements RecipeService {
     private final RecipeRepository recipeRepository;
     private final CategoryService categoryService;
     private final IngredientRecipeService ingredientRecipeService;
-
-    @PersistenceContext
-    private EntityManager em;
+    private final UserService userService;
 
     public RecipeServiceImpl(RecipeRepository recipeRepository,
                              CategoryService categoryService,
-                             IngredientRecipeService ingredientRecipeService) {
+                             IngredientRecipeService ingredientRecipeService,
+                             UserService userService) {
         this.recipeRepository = recipeRepository;
         this.categoryService = categoryService;
         this.ingredientRecipeService = ingredientRecipeService;
+        this.userService = userService;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Recipe getEntityById(Long id) {
+        return recipeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Рецепт с id=" + id + " не найден"));
     }
 
     @Override
@@ -44,13 +49,13 @@ public class RecipeServiceImpl implements RecipeService {
     @Transactional
     public Long create(RecipeForm form, Long userId) {
         Recipe recipe = new Recipe();
-        recipe.setAuthor(em.getReference(User.class, userId));
+        recipe.setAuthor(userService.findById(userId));
         recipe.setCreatedAt(LocalDateTime.now());
         applyForm(recipe, form);
-        Long recipeId = recipeRepository.save(recipe).getId();
-        categoryService.saveAll(recipeId, form.getCategories());
-        ingredientRecipeService.saveAll(recipeId, form.getIngredients());
-        return recipeId;
+        Recipe saved = recipeRepository.save(recipe);
+        categoryService.saveAll(saved.getId(), form.getCategories());
+        ingredientRecipeService.saveAll(saved, form.getIngredients());
+        return saved.getId();
     }
 
     @Override
@@ -59,11 +64,14 @@ public class RecipeServiceImpl implements RecipeService {
     public void update(Long id, RecipeForm form, Long userId) {
         Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Рецепт с id=" + id + " не найден"));
+        if (!recipe.getAuthor().getId().equals(userId)) {
+            throw new ForbiddenException("Нет прав на редактирование рецепта");
+        }
         recipe.setUpdatedAt(LocalDateTime.now());
         applyForm(recipe, form);
         recipeRepository.save(recipe);
         categoryService.saveAll(id, form.getCategories());
-        ingredientRecipeService.saveAll(id, form.getIngredients());
+        ingredientRecipeService.saveAll(recipe, form.getIngredients());
     }
 
     private void applyForm(Recipe recipe, RecipeForm form) {
@@ -85,11 +93,22 @@ public class RecipeServiceImpl implements RecipeService {
     @Override
     @CacheEvict(value = "recipes", allEntries = true)
     @Transactional
-    public boolean deleteById(Long id) {
-        if (!recipeRepository.existsById(id))
-            throw new EntityNotFoundException("Рецепт с id=" + id + " не найден");
+    public boolean deleteById(Long id, Long userId) {
+        Recipe recipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Рецепт с id=" + id + " не найден"));
+        if (!recipe.getAuthor().getId().equals(userId)) {
+            throw new ForbiddenException("Нет прав на удаление рецепта");
+        }
         recipeRepository.deleteById(id);
         return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isOwner(Long recipeId, Long userId) {
+        return recipeRepository.findById(recipeId)
+                .map(r -> r.getAuthor().getId().equals(userId))
+                .orElse(false);
     }
 
     @Override
@@ -188,5 +207,4 @@ public class RecipeServiceImpl implements RecipeService {
     private int timeEnd(Integer value) {
         return value == null ? 1440 : value;
     }
-
 }

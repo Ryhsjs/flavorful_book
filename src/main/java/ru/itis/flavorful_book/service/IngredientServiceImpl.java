@@ -7,6 +7,7 @@ import ru.itis.flavorful_book.entity.Ingredient;
 import ru.itis.flavorful_book.exception.EntityNotFoundException;
 import ru.itis.flavorful_book.repository.IngredientRepository;
 
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -23,6 +24,12 @@ public class IngredientServiceImpl implements IngredientService {
     public Ingredient findById(Long id) {
         return ingredientRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Ингредиент с id=" + id + " не найден"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Ingredient> findAllByIds(Collection<Long> ids) {
+        return ingredientRepository.findAllById(ids);
     }
 
     @Override

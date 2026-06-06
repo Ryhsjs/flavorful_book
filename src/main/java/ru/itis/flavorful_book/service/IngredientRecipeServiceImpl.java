@@ -1,7 +1,5 @@
 package ru.itis.flavorful_book.service;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.itis.flavorful_book.dto.IngredientDTO;
@@ -19,19 +17,19 @@ import java.util.stream.Collectors;
 public class IngredientRecipeServiceImpl implements IngredientRecipeService {
 
     private final IngredientRecipeRepository ingredientRecipeRepository;
+    private final IngredientService ingredientService;
 
-    @PersistenceContext
-    private EntityManager em;
-
-    public IngredientRecipeServiceImpl(IngredientRecipeRepository ingredientRecipeRepository) {
+    public IngredientRecipeServiceImpl(IngredientRecipeRepository ingredientRecipeRepository,
+                                       IngredientService ingredientService) {
         this.ingredientRecipeRepository = ingredientRecipeRepository;
+        this.ingredientService = ingredientService;
     }
 
     @Override
     @Transactional
-    public void save(Long recipeId, IngredientDTO ingredient) {
+    public void save(Recipe recipe, IngredientDTO ingredient) {
         Unit unit = ingredient.unit();
-        ingredientRecipeRepository.findByRecipe_IdAndIngredient_Id(recipeId, ingredient.id())
+        ingredientRecipeRepository.findByRecipe_IdAndIngredient_Id(recipe.getId(), ingredient.id())
                 .ifPresentOrElse(
                         ir -> {
                             ir.setQuantity(ingredient.quantity());
@@ -41,8 +39,8 @@ public class IngredientRecipeServiceImpl implements IngredientRecipeService {
                         },
                         () -> {
                             IngredientRecipe ir = new IngredientRecipe();
-                            ir.setRecipe(em.getReference(Recipe.class, recipeId));
-                            ir.setIngredient(em.getReference(Ingredient.class, ingredient.id()));
+                            ir.setRecipe(recipe);
+                            ir.setIngredient(ingredientService.findById(ingredient.id()));
                             ir.setQuantity(ingredient.quantity());
                             ir.setUnit(unit);
                             ir.setNotes(ingredient.notes());
@@ -53,25 +51,32 @@ public class IngredientRecipeServiceImpl implements IngredientRecipeService {
 
     @Override
     @Transactional
-    public void saveAll(Long recipeId, List<IngredientDTO> ingredients) {
-        Map<Long, IngredientRecipe> existing = ingredientRecipeRepository.findAllByRecipe_Id(recipeId)
+    public void saveAll(Recipe recipe, List<IngredientDTO> ingredients) {
+        Map<Long, IngredientRecipe> existing = ingredientRecipeRepository.findAllByRecipe_Id(recipe.getId())
                 .stream()
                 .collect(Collectors.toMap(ir -> ir.getIngredient().getId(), ir -> ir));
 
         Set<Long> incomingIds = new HashSet<>();
         List<IngredientRecipe> toSave = new ArrayList<>();
 
+        // batch-load all needed ingredients at once
+        Set<Long> newIngredientIds = ingredients.stream()
+                .map(IngredientDTO::id)
+                .filter(id -> !existing.containsKey(id))
+                .collect(Collectors.toSet());
+        Map<Long, Ingredient> ingredientMap = ingredientService.findAllByIds(newIngredientIds).stream()
+                .collect(Collectors.toMap(Ingredient::getId, i -> i));
+
         for (IngredientDTO dto : ingredients) {
             incomingIds.add(dto.id());
-            Unit unit = dto.unit();
             IngredientRecipe ir = existing.get(dto.id());
             if (ir == null) {
                 ir = new IngredientRecipe();
-                ir.setRecipe(em.getReference(Recipe.class, recipeId));
-                ir.setIngredient(em.getReference(Ingredient.class, dto.id()));
+                ir.setRecipe(recipe);
+                ir.setIngredient(ingredientMap.get(dto.id()));
             }
             ir.setQuantity(dto.quantity());
-            ir.setUnit(unit);
+            ir.setUnit(dto.unit());
             ir.setNotes(dto.notes());
             toSave.add(ir);
         }
@@ -82,7 +87,7 @@ public class IngredientRecipeServiceImpl implements IngredientRecipeService {
                 .filter(id -> !incomingIds.contains(id))
                 .collect(Collectors.toSet());
         if (!toDeleteIds.isEmpty()) {
-            ingredientRecipeRepository.deleteAllByRecipeIdAndIngredientIds(recipeId, toDeleteIds);
+            ingredientRecipeRepository.deleteAllByRecipeIdAndIngredientIds(recipe.getId(), toDeleteIds);
         }
     }
 
